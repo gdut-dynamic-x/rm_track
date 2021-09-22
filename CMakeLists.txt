@@ -33,6 +33,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_library(${PROJECT_NAME}
+        src/cache.cpp
         )
 
 target_link_libraries(${PROJECT_NAME}
