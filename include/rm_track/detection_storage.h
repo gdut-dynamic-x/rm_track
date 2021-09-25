@@ -8,6 +8,12 @@
 
 namespace rm_track
 {
+struct Target
+{
+  tf2::Transform transform;
+  double confidence;
+};
+
 class DetectionStorage
 {
 public:
@@ -19,13 +25,11 @@ public:
     {
       tf2::Transform transform;
       tf2::fromMsg(datas[i].translation, transform);
-      transforms.push_back(transform);
-      confidences_.push_back(confidence[i]);
+      targets_.push_back(Target{ .transform = transform, .confidence = confidence[i] });
     }
   }
   ros::Time stamp_;
-  std::vector<tf2::Transform> transforms;
-  std::vector<double> confidences_;
+  std::vector<Target> targets_;
 };
 
 }  // namespace rm_track

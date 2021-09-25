@@ -16,22 +16,20 @@ public:
   explicit Cache(ros::Duration max_storage_time = ros::Duration(5.)) : max_storage_time_(max_storage_time){};
 
   bool getData(ros::Time time, DetectionStorage& data);
-  void insertData(const DetectionStorage& data);
-  double findClosestInPast(const DetectionStorage& in, DetectionStorage* out);
+  bool insertData(const DetectionStorage& data);
+  double findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out);
 
   ros::Time getLatestTimestamp();
   ros::Time getOldestTimestamp();
 
 private:
-  inline void interpolate(const DetectionStorage& one, const DetectionStorage& two, ros::Time time,
-                          DetectionStorage& output)
-  {
-    // TODO: Add interpolate
-  }
+  // TODO: Interpolate implementation
+  //  inline void interpolate(const DetectionStorage& one, const DetectionStorage& two, ros::Time time,
+  //                          DetectionStorage& output){}
 
   void pruneList();
 
   ros::Duration max_storage_time_;
-  std::deque<DetectionStorage> detections_;
+  std::deque<DetectionStorage> storage_;
 };
 }  // namespace rm_track
