@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include "rm_track/cache.h"
+#include "rm_track/time_cache.h"
 #include <ros/ros.h>
 
 namespace rm_track
 {
-bool Cache::getData(ros::Time time, DetectionStorage& data)
+bool TimeCache::getData(ros::Time time, DetectionStorage& data)
 {
   if (time == ros::Time() && storage_.empty())
   {
@@ -20,7 +20,7 @@ bool Cache::getData(ros::Time time, DetectionStorage& data)
     return false;
 }
 
-bool Cache::insertData(const DetectionStorage& data)
+bool TimeCache::insertData(const DetectionStorage& data)
 {
   auto storage_it = storage_.begin();
   if (storage_it != storage_.end())
@@ -42,7 +42,7 @@ bool Cache::insertData(const DetectionStorage& data)
   return true;
 }
 
-double Cache::findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out)
+double TimeCache::findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out)
 {
   auto storage_it = storage_.begin();
   while (storage_it != storage_.end())
@@ -65,21 +65,21 @@ double Cache::findClosestInPast(const ros::Time& time_in, ros::Time& time_out, c
   return distance;
 }
 
-ros::Time Cache::getLatestTimestamp()
+ros::Time TimeCache::getLatestTimestamp()
 {
   if (storage_.empty())  // empty list case
     return ros::Time();
   return storage_.front().stamp_;
 }
 
-ros::Time Cache::getOldestTimestamp()
+ros::Time TimeCache::getOldestTimestamp()
 {
   if (storage_.empty())  // empty list case
     return ros::Time();
   return storage_.back().stamp_;
 }
 
-void Cache::pruneList()
+void TimeCache::pruneList()
 {
   while (!storage_.empty() && storage_.back().stamp_ + max_storage_time_ < storage_.begin()->stamp_)
     storage_.pop_back();

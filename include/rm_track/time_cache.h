@@ -10,10 +10,10 @@
 
 namespace rm_track
 {
-class Cache
+class TimeCache
 {
 public:
-  explicit Cache(ros::Duration max_storage_time = ros::Duration(5.)) : max_storage_time_(max_storage_time){};
+  explicit TimeCache(ros::Duration max_storage_time = ros::Duration(5.)) : max_storage_time_(max_storage_time){};
 
   bool getData(ros::Time time, DetectionStorage& data);
   bool insertData(const DetectionStorage& data);
