@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace rm_track
