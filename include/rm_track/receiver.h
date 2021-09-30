@@ -32,7 +32,14 @@ protected:
   void insertData(int id, const geometry_msgs::PoseStamped& pose, double confidence)
   {
     geometry_msgs::PoseStamped pose_out;
-    tf_buffer_.transform(pose, pose_out, "map");
+    try
+    {
+      tf_buffer_.transform(pose, pose_out, "map");
+    }
+    catch (tf2::TransformException& ex)
+    {
+      ROS_WARN("Failure %s\n", ex.what());
+    }
     if (id2storage_.find(id) != id2storage_.end())
       id2storage_.insert(std::make_pair(id, DetectionStorage(pose_out.header.stamp)));
     id2storage_[id].insertData(pose_out.pose, confidence);
