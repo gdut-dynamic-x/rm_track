@@ -17,17 +17,26 @@ struct Target
 class DetectionStorage
 {
 public:
-  DetectionStorage(ros::Time stamp, const std::vector<geometry_msgs::Transform>& datas,
-                   const std::vector<double>& confidence)
+  DetectionStorage(const ros::Time& stamp) : stamp_(stamp)
+  {
+  }
+
+  void insertData(geometry_msgs::Pose data, double confidence)
+  {
+    tf2::Transform transform;
+    tf2::fromMsg(data, transform);
+    targets_.push_back(Target{ .transform = transform, .confidence = confidence });
+  }
+
+  DetectionStorage(ros::Time stamp, const std::vector<geometry_msgs::Pose>& datas,
+                   const std::vector<double>& confidences)
     : stamp_(stamp)
   {
     for (int i = 0; i < datas.size(); ++i)
-    {
-      tf2::Transform transform;
-      tf2::fromMsg(datas[i].translation, transform);
-      targets_.push_back(Target{ .transform = transform, .confidence = confidence[i] });
-    }
+      insertData(datas[i], confidences[i]);
   }
+
+private:
   ros::Time stamp_;
   std::vector<Target> targets_;
 };

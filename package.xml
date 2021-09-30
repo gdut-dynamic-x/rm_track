@@ -17,8 +17,6 @@
     <depend>rm_common</depend>
 
     <depend>tf2_geometry_msgs</depend>
+    <depend>apriltag_ros</depend>
 
-    <export>
-        <controller_interface plugin="${prefix}/rm_calibration_controllers_plugins.xml"/>
-    </export>
 </package>

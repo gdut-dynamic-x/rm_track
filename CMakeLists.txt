@@ -10,6 +10,7 @@ find_package(catkin REQUIRED
         rm_common
 
         tf2_geometry_msgs
+        apriltag_ros
         )
 
 catkin_package(
@@ -23,6 +24,7 @@ catkin_package(
         rm_common
 
         tf2_geometry_msgs
+        apriltag_ros
         LIBRARIES ${PROJECT_NAME}
 )
 
@@ -33,7 +35,9 @@ include_directories(
 
 ## Declare a C++ executable
 add_library(${PROJECT_NAME}
-        src/cache.cpp
+        src/time_cache.cpp
+        src/logic_filter.cpp
+        src/rm_track.cpp
         )
 
 target_link_libraries(${PROJECT_NAME}
