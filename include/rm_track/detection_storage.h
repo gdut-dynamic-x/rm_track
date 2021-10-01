@@ -36,7 +36,6 @@ public:
       insertData(datas[i], confidences[i]);
   }
 
-private:
   ros::Time stamp_;
   std::vector<Target> targets_;
 };

@@ -42,7 +42,7 @@ protected:
     }
     if (id2storage_.find(id) != id2storage_.end())
       id2storage_.insert(std::make_pair(id, DetectionStorage(pose_out.header.stamp)));
-    id2storage_[id].insertData(pose_out.pose, confidence);
+    id2storage_.find(id)->second.insertData(pose_out.pose, confidence);
   }
 
   void updateBuffer()

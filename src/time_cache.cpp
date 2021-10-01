@@ -2,8 +2,6 @@
 // Created by qiayuan on 2021/9/22.
 //
 
-#pragma once
-
 #include "rm_track/time_cache.h"
 #include <ros/ros.h>
 
