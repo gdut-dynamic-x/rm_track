@@ -1,6 +1,8 @@
 //
 // Created by qiayuan on 2021/9/26.
 //
+#pragma once
+
 #include "time_cache.h"
 #include <unordered_map>
 
