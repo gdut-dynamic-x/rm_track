@@ -1,0 +1,4 @@
+rm_track:
+  height_filter:
+    basic_range: [ 0, 0.5 ]
+    double_check_range: [ -0.5, 1.0 ]
