@@ -7,11 +7,8 @@
 
 namespace rm_track
 {
-HeightFilter::HeightFilter(ros::NodeHandle& nh)
+HeightFilter::HeightFilter(ros::NodeHandle& nh, XmlRpc::XmlRpcValue rpc_value)
 {
-  XmlRpc::XmlRpcValue rpc_value;
-  if (!nh.getParam("height_filter", rpc_value))
-    ROS_ERROR("height_filter no defined (namespace %s)", nh.getNamespace().c_str());
   if (rpc_value.hasMember("basic_range") && rpc_value.hasMember("double_check_range"))
   {
     basic_range_[0] = rpc_value["basic_range"][0];

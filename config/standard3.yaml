@@ -1,4 +1,13 @@
 rm_track:
-  height_filter:
-    basic_range: [ 0, 0.5 ]
-    double_check_range: [ -0.5, 1.0 ]
+  filters:
+    - type: height_filter
+      parameter: { basic_range: [ 0, 1.5 ], double_check_range: [ 0.5, 1.0 ] }
+    - type: distance_filter
+      parameter: { }
+  selectors:
+    - target: last_armor
+      parameter: { }
+    - target: same_id_armor
+      parameter: { }
+    - target: nearest_armor
+      parameter: { }

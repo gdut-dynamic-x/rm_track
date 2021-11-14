@@ -20,7 +20,7 @@ public:
 class HeightFilter : public LogicFilterBase
 {
 public:
-  HeightFilter(ros::NodeHandle& nh);
+  HeightFilter(ros::NodeHandle& nh, XmlRpc::XmlRpcValue rpc_value);
   void input(Buffer& buffer) override;
 
 private:
