@@ -12,20 +12,33 @@ namespace rm_track
 class LogicFilterBase
 {
 public:
-  LogicFilterBase() = default;
-
+  explicit LogicFilterBase(XmlRpc::XmlRpcValue rpc_value);
   virtual void input(Buffer& buffer) = 0;
+
+protected:
+  double basic_range_[2];
+  double double_check_range_[2];
 };
 
 class HeightFilter : public LogicFilterBase
 {
 public:
-  HeightFilter(ros::NodeHandle& nh, XmlRpc::XmlRpcValue rpc_value);
+  explicit HeightFilter(XmlRpc::XmlRpcValue rpc_value);
   void input(Buffer& buffer) override;
+};
 
-private:
-  double basic_range_[2];
-  double double_check_range_[2];
+class DistanceFilter : public LogicFilterBase
+{
+public:
+  explicit DistanceFilter(XmlRpc::XmlRpcValue rpc_value);
+  void input(Buffer& buffer) override;
+};
+
+class ConfidenceFilter : public LogicFilterBase
+{
+public:
+  explicit ConfidenceFilter(XmlRpc::XmlRpcValue rpc_value);
+  void input(Buffer& buffer) override;
 };
 
 }  // namespace rm_track

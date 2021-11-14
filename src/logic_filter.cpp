@@ -7,7 +7,7 @@
 
 namespace rm_track
 {
-HeightFilter::HeightFilter(ros::NodeHandle& nh, XmlRpc::XmlRpcValue rpc_value)
+LogicFilterBase::LogicFilterBase(XmlRpc::XmlRpcValue rpc_value)
 {
   if (rpc_value.hasMember("basic_range") && rpc_value.hasMember("double_check_range"))
   {
@@ -17,9 +17,27 @@ HeightFilter::HeightFilter(ros::NodeHandle& nh, XmlRpc::XmlRpcValue rpc_value)
     double_check_range_[1] = rpc_value["double_check_range"][1];
   }
   else
-    ROS_ERROR("Some height_filter params doesn't given (namespace: %s)", nh.getNamespace().c_str());
+    ROS_ERROR("Some filter params doesn't given");
+}
+
+HeightFilter::HeightFilter(XmlRpc::XmlRpcValue rpc_value) : LogicFilterBase(rpc_value)
+{
 }
 void HeightFilter::input(Buffer& buffer)
+{
+}
+
+DistanceFilter::DistanceFilter(XmlRpc::XmlRpcValue rpc_value) : LogicFilterBase(rpc_value)
+{
+}
+void DistanceFilter::input(Buffer& buffer)
+{
+}
+
+ConfidenceFilter::ConfidenceFilter(XmlRpc::XmlRpcValue rpc_value) : LogicFilterBase(rpc_value)
+{
+}
+void ConfidenceFilter::input(Buffer& buffer)
 {
 }
 

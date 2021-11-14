@@ -3,7 +3,9 @@ rm_track:
     - type: height_filter
       parameter: { basic_range: [ 0, 1.5 ], double_check_range: [ 0.5, 1.0 ] }
     - type: distance_filter
-      parameter: { }
+      parameter: { basic_range: [ 0, 6.0 ], double_check_range: [ 4.0, 6.0 ] }
+    - type: confidence_filter
+      parameter: { basic_range: [ 0.2, 1.0 ], double_check_range: [ 0.2, 0.5 ] }
   selectors:
     - target: last_armor
       parameter: { }
