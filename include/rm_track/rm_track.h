@@ -12,7 +12,8 @@ namespace rm_track
 class RmTrack
 {
 public:
-  RmTrack();
+  explicit RmTrack(ros::NodeHandle& nh);
+  void run();
 
 private:
   Buffer buffer_;

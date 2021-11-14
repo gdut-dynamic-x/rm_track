@@ -13,7 +13,7 @@ class LogicFilterBase
 {
 public:
   explicit LogicFilterBase(XmlRpc::XmlRpcValue rpc_value);
-  virtual void input(Buffer& buffer) = 0;
+  virtual void input(Buffer& buffer);
 
 protected:
   double basic_range_[2];

@@ -3,3 +3,28 @@
 //
 
 #include "rm_track/rm_track.h"
+
+namespace rm_track
+{
+RmTrack::RmTrack(ros::NodeHandle& nh)
+{
+  XmlRpc::XmlRpcValue filters;
+  if (nh.getParam("filters", filters))
+    for (int i = 0; i < filters.size(); ++i)
+    {
+      if (filters[i]["type"] == "height_filter")
+        logic_filters.push_back(HeightFilter(filters[i]));
+      else if (filters[i]["type"] == "distance_filter")
+        logic_filters.push_back(DistanceFilter(filters[i]));
+      else if (filters[i]["type"] == "confidence_filter")
+        logic_filters.push_back(ConfidenceFilter(filters[i]));
+    }
+  else
+    ROS_ERROR("No filters are defined (namespace %s)", nh.getNamespace().c_str());
+}
+
+void RmTrack::run()
+{
+}
+
+}  // namespace rm_track
