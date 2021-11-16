@@ -27,6 +27,11 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
 void RmTrack::run()
 {
+  Buffer buffer = buffer_;
+  for (auto filter : logic_filters_)
+    filter.input(buffer);
+
+  // TODO selectors(input: buffer, outout: target pose)
 }
 
 }  // namespace rm_track
