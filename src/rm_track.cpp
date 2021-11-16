@@ -13,14 +13,16 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     for (int i = 0; i < filters.size(); ++i)
     {
       if (filters[i]["type"] == "height_filter")
-        logic_filters.push_back(HeightFilter(filters[i]));
+        logic_filters_.push_back(HeightFilter(filters[i]));
       else if (filters[i]["type"] == "distance_filter")
-        logic_filters.push_back(DistanceFilter(filters[i]));
+        logic_filters_.push_back(DistanceFilter(filters[i]));
       else if (filters[i]["type"] == "confidence_filter")
-        logic_filters.push_back(ConfidenceFilter(filters[i]));
+        logic_filters_.push_back(ConfidenceFilter(filters[i]));
     }
   else
     ROS_ERROR("No filters are defined (namespace %s)", nh.getNamespace().c_str());
+
+  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_);
 }
 
 void RmTrack::run()

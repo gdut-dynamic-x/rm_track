@@ -5,7 +5,6 @@
 
 #include "receiver.h"
 #include "logic_filter.h"
-#include <rm_msgs/TargetDetectionArray.h>
 
 namespace rm_track
 {
@@ -17,7 +16,8 @@ public:
 
 private:
   Buffer buffer_;
-  std::vector<LogicFilterBase> logic_filters;
+  std::vector<LogicFilterBase> logic_filters_;
+  std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
 };
 
 }  // namespace rm_track

@@ -53,7 +53,7 @@ protected:
   }
 
 private:
-  virtual void msgCallback(const MsgType& msg) = 0;
+  virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg);
 
   Buffer& buffer_;
   tf2_ros::Buffer tf_buffer_;
@@ -68,13 +68,13 @@ public:
   using ReceiverBase<rm_msgs::TargetDetectionArray>::ReceiverBase;
 
 private:
-  void msgCallback(const rm_msgs::TargetDetectionArray& msg) override
+  void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
-    for (const auto& detection : msg.detections)
+    for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
-      pose_stamped.header.frame_id = msg.header.frame_id;
-      pose_stamped.header.stamp = msg.header.stamp;
+      pose_stamped.header.frame_id = msg->header.frame_id;
+      pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose;
       insertData(detection.id, pose_stamped, detection.confidence);
     }
@@ -88,13 +88,13 @@ public:
   using ReceiverBase<apriltag_ros::AprilTagDetectionArray>::ReceiverBase;
 
 private:
-  void msgCallback(const apriltag_ros::AprilTagDetectionArray& msg) override
+  void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
-    for (const auto& detection : msg.detections)
+    for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
-      pose_stamped.header.frame_id = msg.header.frame_id;
-      pose_stamped.header.stamp = msg.header.stamp;
+      pose_stamped.header.frame_id = msg->header.frame_id;
+      pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose.pose.pose;
       // Suppose not tag bundle and take tens digit as id, since apriltag_ros does not support tags with the same id
       // appear in one image
