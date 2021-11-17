@@ -5,6 +5,7 @@
 
 #include "receiver.h"
 #include "logic_filter.h"
+#include "logic_selector.h"
 
 namespace rm_track
 {
@@ -15,8 +16,10 @@ public:
   void run();
 
 private:
+  Armor target_armor_;
   Buffer buffer_;
   std::vector<LogicFilterBase> logic_filters_;
+  std::vector<LogicSelectorBase> logic_selectors_;
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
 };
 

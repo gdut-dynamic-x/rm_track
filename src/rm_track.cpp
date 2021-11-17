@@ -18,9 +18,27 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
         logic_filters_.push_back(DistanceFilter(filters[i]));
       else if (filters[i]["type"] == "confidence_filter")
         logic_filters_.push_back(ConfidenceFilter(filters[i]));
+      else
+        ROS_ERROR("Filter '%s' does not exist", filters[i].toXml().c_str());
     }
   else
     ROS_ERROR("No filters are defined (namespace %s)", nh.getNamespace().c_str());
+
+  XmlRpc::XmlRpcValue selectors;
+  if (nh.getParam("selectors", selectors))
+    for (int i = 0; i < selectors.size(); ++i)
+    {
+      if (selectors[i] == "same_id_armor")
+        logic_selectors_.push_back(SameIDArmorSelector());
+      else if (selectors[i] == "static_armor")
+        logic_selectors_.push_back(StaticArmorSelector());
+      else if (selectors[i] == "closest_armor")
+        logic_selectors_.push_back(ClosestArmorSelector());
+      else
+        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
+    }
+  else
+    ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
   apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_);
 }
@@ -31,7 +49,16 @@ void RmTrack::run()
   for (auto filter : logic_filters_)
     filter.input(buffer);
 
-  // TODO selectors(input: buffer, outout: target pose)
+  for (auto selector : logic_selectors_)
+  {
+    if (selector.input(buffer))
+    {
+      target_armor_ = selector.output();
+      break;
+    }
+  }
+
+  // TODO Publish target armor
 }
 
 }  // namespace rm_track

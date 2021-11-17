@@ -6,16 +6,19 @@
 
 namespace rm_track
 {
-void SameIDArmorSelector::input(const Buffer buffer)
+bool SameIDArmorSelector::input(const Buffer buffer)
 {
+  return true;
 }
 
-void StaticArmorSelector::input(const Buffer buffer)
+bool StaticArmorSelector::input(const Buffer buffer)
 {
+  return true;
 }
 
-void ClosestArmorSelector::input(const Buffer buffer)
+bool ClosestArmorSelector::input(const Buffer buffer)
 {
+  return true;
 }
 
 }  // namespace rm_track
