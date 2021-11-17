@@ -3,7 +3,6 @@
 //
 
 #include "rm_track/logic_filter.h"
-#include <rm_common/ros_utilities.h>
 
 namespace rm_track
 {
