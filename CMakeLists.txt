@@ -37,6 +37,7 @@ include_directories(
 add_library(${PROJECT_NAME}
         src/time_cache.cpp
         src/logic_filter.cpp
+        src/logic_selector.cpp
         src/rm_track.cpp
         )
 
