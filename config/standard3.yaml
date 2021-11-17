@@ -8,11 +8,8 @@ rm_track:
       double_check_range: [ 4.0, 6.0 ]
     - type: confidence_filter
       basic_range: [ 0.2, 1.0 ]
-      double_check_range: [ 0.2, 0.5 ] }
+      double_check_range: [ 0.2, 0.5 ]
   selectors:
-    - target: last_armor
-      parameter: { }
-    - target: same_id_armor
-      parameter: { }
-    - target: nearest_armor
-      parameter: { }
+    - same_id_armor
+    - static_armor
+    - closest_armor
