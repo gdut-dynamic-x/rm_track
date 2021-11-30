@@ -10,6 +10,14 @@ namespace rm_track
 {
 struct Target
 {
+  enum STATE
+  {
+    APPEAR,
+    EXIST,
+    DISAPPEAR,
+    NOT_EXIST
+  } state;
+
   tf2::Transform transform;
   double confidence;
 };
@@ -17,6 +25,14 @@ struct Target
 class DetectionStorage
 {
 public:
+  enum STATE
+  {
+    STATIC,
+    TRANSLATION,
+    GYRO,
+    UNKNOWN
+  } state_;
+
   DetectionStorage(const ros::Time& stamp) : stamp_(stamp)
   {
   }
