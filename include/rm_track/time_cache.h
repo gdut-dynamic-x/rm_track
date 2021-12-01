@@ -16,8 +16,9 @@ public:
   explicit TimeCache(ros::Duration max_storage_time = ros::Duration(5.)) : max_storage_time_(max_storage_time){};
 
   bool getData(ros::Time time, DetectionStorage& data);
-  bool insertData(const DetectionStorage& data);
+  bool insertData(DetectionStorage& data);
   double findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out);
+  void updateState(ros::Time latest_time);
 
   ros::Time getLatestTimestamp();
   ros::Time getOldestTimestamp();
@@ -30,6 +31,8 @@ private:
   void pruneList();
 
   ros::Duration max_storage_time_;
+  ros::Duration max_refresh_time_;
+  ros::Duration max_lost_time_;
   std::deque<DetectionStorage> storage_;
 };
 }  // namespace rm_track

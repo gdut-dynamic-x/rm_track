@@ -18,7 +18,7 @@ bool TimeCache::getData(ros::Time time, DetectionStorage& data)
     return false;
 }
 
-bool TimeCache::insertData(const DetectionStorage& data)
+bool TimeCache::insertData(DetectionStorage& data)
 {
   auto storage_it = storage_.begin();
   if (storage_it != storage_.end())
@@ -38,6 +38,73 @@ bool TimeCache::insertData(const DetectionStorage& data)
   storage_.insert(storage_it, data);
   pruneList();
   return true;
+}
+
+void TimeCache::updateState(ros::Time latest_time)
+{
+  auto storage_it = storage_.begin();
+
+  if (storage_it == storage_.end())
+    return;
+
+  if (storage_it->stamp_ == latest_time)
+  {
+    if ((storage_it + 1) == storage_.end() || storage_it->stamp_ - (storage_it + 1)->stamp_ > max_refresh_time_)
+      for (int i = 0; i < storage_it->targets_.size(); ++i)
+        storage_it->targets_[i].state = Target::APPEAR;
+    else
+    {
+      // The number of armor with the same ID not changed
+      if ((storage_it + 1)->targets_.size() == storage_it->targets_.size())
+        storage_it->targets_.begin()->state = Target::EXIST;
+
+      // The number of armor with the same ID changed from 1 to 2
+      if ((storage_it + 1)->targets_.size() == 1 && storage_it->targets_.size() == 2)
+      {
+        double first_distance = storage_it->targets_.begin()->transform.getOrigin().distance(
+            (storage_it + 1)->targets_.begin()->transform.getOrigin());
+        double second_distance = storage_it->targets_.end()->transform.getOrigin().distance(
+            (storage_it + 1)->targets_.begin()->transform.getOrigin());
+        if (first_distance >= second_distance)
+        {
+          storage_it->targets_.begin()->state = Target::APPEAR;
+          storage_it->targets_.end()->state = Target::EXIST;
+        }
+        else
+        {
+          storage_it->targets_.begin()->state = Target::EXIST;
+          storage_it->targets_.end()->state = Target::APPEAR;
+        }
+      }
+
+      // The number of armor with the same ID changed from 2 to 1
+      if ((storage_it + 1)->targets_.size() == 2 && storage_it->targets_.size() == 1)
+      {
+        double first_distance = storage_it->targets_.begin()->transform.getOrigin().distance(
+            (storage_it + 1)->targets_.begin()->transform.getOrigin());
+        double second_distance = storage_it->targets_.begin()->transform.getOrigin().distance(
+            (storage_it + 1)->targets_.end()->transform.getOrigin());
+        if (first_distance >= second_distance)
+          (storage_it + 1)->targets_.begin()->state =
+              (storage_it + 1)->targets_.begin()->state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
+        else
+          (storage_it + 1)->targets_.end()->state =
+              (storage_it + 1)->targets_.end()->state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
+        storage_it->targets_.begin()->state = Target::EXIST;
+      }
+    }
+  }
+  else if (storage_it->stamp_ < latest_time)
+  {
+    if (latest_time - storage_it->stamp_ <= max_lost_time_)
+      for (int i = 0; i < storage_it->targets_.size(); ++i)
+        storage_it->targets_[i].state = Target::DISAPPEAR;
+    else
+      for (int i = 0; i < storage_it->targets_.size(); ++i)
+        storage_it->targets_[i].state = Target::NOT_EXIST;
+  }
+  else
+    ROS_ERROR("Future timestamp data appears");
 }
 
 double TimeCache::findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out)

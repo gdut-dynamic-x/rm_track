@@ -49,6 +49,7 @@ protected:
   {
     for (const auto& storage : id2storage_)
       buffer_.insertData(storage.first, storage.second);
+    buffer_.updateState();
     id2storage_.clear();
   }
 
