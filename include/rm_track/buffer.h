@@ -14,17 +14,16 @@ public:
   Buffer() = default;
   void insertData(int id, DetectionStorage data)
   {
-    latest_time_ = data.stamp_ > latest_time_ ? data.stamp_ : latest_time_;
     (id2caches_.find(id) == id2caches_.end() ? allocateCache(id) : id2caches_[id]).insertData(data);
   }
   TimeCache& getTimeCache(int id)
   {
     return id2caches_[id];
   }
-  void updateState()
+  void updateState(ros::Time latest_time)
   {
     for (auto cache : id2caches_)
-      cache.second.updateState(latest_time_);
+      cache.second.updateState(latest_time);
   }
 
 private:
@@ -34,6 +33,5 @@ private:
     return id2caches_[id];
   }
   std::unordered_map<int, TimeCache> id2caches_;
-  ros::Time latest_time_;
 };
 }  // namespace rm_track

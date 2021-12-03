@@ -45,11 +45,11 @@ protected:
     id2storage_.find(id)->second.insertData(pose_out.pose, confidence);
   }
 
-  void updateBuffer()
+  void updateBuffer(ros::Time latest_time)
   {
     for (const auto& storage : id2storage_)
       buffer_.insertData(storage.first, storage.second);
-    buffer_.updateState();
+    buffer_.updateState(latest_time);
     id2storage_.clear();
   }
 
@@ -79,7 +79,7 @@ private:
       pose_stamped.pose = detection.pose;
       insertData(detection.id, pose_stamped, detection.confidence);
     }
-    updateBuffer();
+    updateBuffer(msg->header.stamp);
   }
 };
 
@@ -101,7 +101,7 @@ private:
       // appear in one image
       insertData(detection.id[0] % 10, pose_stamped, 1.0);
     }
-    updateBuffer();
+    updateBuffer(msg->header.stamp);
   }
 };
 
