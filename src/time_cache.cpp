@@ -49,9 +49,9 @@ void TimeCache::updateState(ros::Time latest_time)
 
   if (storage_it->stamp_ == latest_time)
   {
-    if ((storage_it + 1) == storage_.end() || storage_it->stamp_ - (storage_it + 1)->stamp_ > max_refresh_time_)
-      for (int i = 0; i < storage_it->targets_.size(); ++i)
-        storage_it->targets_[i].state = Target::APPEAR;
+    if ((storage_it + 1) == storage_.end() || storage_it->stamp_ - (storage_it + 1)->stamp_ > max_lost_time_)
+      for (auto target : storage_it->targets_)
+        target.state = Target::APPEAR;
     else
     {
       // The number of armor with the same ID not changed
@@ -59,31 +59,45 @@ void TimeCache::updateState(ros::Time latest_time)
         storage_it->targets_.begin()->state = Target::EXIST;
 
       // The number of armor with the same ID changed from 1 to 2
-      if ((storage_it + 1)->targets_.size() == 1 && storage_it->targets_.size() == 2)
+      else if ((storage_it + 1)->targets_.size() == 1 && storage_it->targets_.size() == 2)
       {
-        double first_distance = storage_it->targets_.begin()->transform.getOrigin().distance(
-            (storage_it + 1)->targets_.begin()->transform.getOrigin());
-        double second_distance = storage_it->targets_.end()->transform.getOrigin().distance(
-            (storage_it + 1)->targets_.begin()->transform.getOrigin());
-        if (first_distance >= second_distance)
+        double first_distance = (storage_it->targets_.begin()->transform.getOrigin() -
+                                 (storage_it + 1)->targets_.begin()->transform.getOrigin())
+                                    .length();
+        double second_distance = (storage_it->targets_.end()->transform.getOrigin() -
+                                  (storage_it + 1)->targets_.begin()->transform.getOrigin())
+                                     .length();
+        first_distance < second_distance ? storage_it->targets_.begin()->state :
+                                           storage_it->targets_.end()->state = Target::EXIST;
+        for (auto storage : storage_)
         {
-          storage_it->targets_.begin()->state = Target::APPEAR;
-          storage_it->targets_.end()->state = Target::EXIST;
-        }
-        else
-        {
-          storage_it->targets_.begin()->state = Target::EXIST;
-          storage_it->targets_.end()->state = Target::APPEAR;
+          if (storage.targets_.size() == 2 && ((storage.targets_.begin()->state == Target::DISAPPEAR &&
+                                                storage.targets_.end()->state == Target::EXIST) ||
+                                               (storage.targets_.begin()->state == Target::EXIST &&
+                                                storage.targets_.end()->state == Target::DISAPPEAR)))
+          {
+            first_distance >= second_distance ? storage_it->targets_.begin()->state :
+                                                storage_it->targets_.end()->state = Target::EXIST;
+            break;
+          }
+          if (latest_time - storage.stamp_ > max_lost_time_)
+          {
+            first_distance >= second_distance ? storage_it->targets_.begin()->state :
+                                                storage_it->targets_.end()->state = Target::APPEAR;
+            break;
+          }
         }
       }
 
       // The number of armor with the same ID changed from 2 to 1
-      if ((storage_it + 1)->targets_.size() == 2 && storage_it->targets_.size() == 1)
+      else if ((storage_it + 1)->targets_.size() == 2 && storage_it->targets_.size() == 1)
       {
-        double first_distance = storage_it->targets_.begin()->transform.getOrigin().distance(
-            (storage_it + 1)->targets_.begin()->transform.getOrigin());
-        double second_distance = storage_it->targets_.begin()->transform.getOrigin().distance(
-            (storage_it + 1)->targets_.end()->transform.getOrigin());
+        double first_distance = (storage_it->targets_.begin()->transform.getOrigin() -
+                                 (storage_it + 1)->targets_.begin()->transform.getOrigin())
+                                    .length();
+        double second_distance = (storage_it->targets_.begin()->transform.getOrigin() -
+                                  (storage_it + 1)->targets_.end()->transform.getOrigin())
+                                     .length();
         if (first_distance >= second_distance)
           (storage_it + 1)->targets_.begin()->state =
               (storage_it + 1)->targets_.begin()->state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
@@ -92,19 +106,24 @@ void TimeCache::updateState(ros::Time latest_time)
               (storage_it + 1)->targets_.end()->state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
         storage_it->targets_.begin()->state = Target::EXIST;
       }
+      else
+        ROS_ERROR("Multiple (> 2) armor appears");
     }
   }
   else if (storage_it->stamp_ < latest_time)
   {
     if (latest_time - storage_it->stamp_ <= max_lost_time_)
-      for (int i = 0; i < storage_it->targets_.size(); ++i)
-        storage_it->targets_[i].state = Target::DISAPPEAR;
-    else
-      for (int i = 0; i < storage_it->targets_.size(); ++i)
-        storage_it->targets_[i].state = Target::NOT_EXIST;
+      for (auto target : storage_it->targets_)
+        target.state = target.state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
   }
   else
     ROS_ERROR("Future timestamp data appears");
+
+  // Traverse the cache to find out if there is armor that has just disappeared
+  for (auto storage : storage_)
+    for (auto target : storage.targets_)
+      if (target.state == Target::DISAPPEAR && latest_time - storage.stamp_ > max_lost_time_)
+        target.state = Target::NOT_EXIST;
 }
 
 double TimeCache::findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out)

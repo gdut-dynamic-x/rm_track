@@ -13,7 +13,9 @@ namespace rm_track
 class TimeCache
 {
 public:
-  explicit TimeCache(ros::Duration max_storage_time = ros::Duration(5.)) : max_storage_time_(max_storage_time){};
+  explicit TimeCache(ros::Duration max_storage_time = ros::Duration(5.),
+                     ros::Duration max_lost_time = ros::Duration(0.5))
+    : max_storage_time_(max_storage_time), max_lost_time_(max_lost_time){};
 
   bool getData(ros::Time time, DetectionStorage& data);
   bool insertData(DetectionStorage& data);
@@ -31,7 +33,6 @@ private:
   void pruneList();
 
   ros::Duration max_storage_time_;
-  ros::Duration max_refresh_time_;
   ros::Duration max_lost_time_;
   std::deque<DetectionStorage> storage_;
 };
