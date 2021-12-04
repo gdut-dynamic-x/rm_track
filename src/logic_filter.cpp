@@ -22,21 +22,21 @@ LogicFilterBase::LogicFilterBase(XmlRpc::XmlRpcValue rpc_value)
 HeightFilter::HeightFilter(XmlRpc::XmlRpcValue rpc_value) : LogicFilterBase(rpc_value)
 {
 }
-void HeightFilter::input(Buffer& buffer)
+void HeightFilter::input(std::vector<Armor>& armors)
 {
 }
 
 DistanceFilter::DistanceFilter(XmlRpc::XmlRpcValue rpc_value) : LogicFilterBase(rpc_value)
 {
 }
-void DistanceFilter::input(Buffer& buffer)
+void DistanceFilter::input(std::vector<Armor>& armors)
 {
 }
 
 ConfidenceFilter::ConfidenceFilter(XmlRpc::XmlRpcValue rpc_value) : LogicFilterBase(rpc_value)
 {
 }
-void ConfidenceFilter::input(Buffer& buffer)
+void ConfidenceFilter::input(std::vector<Armor>& armors)
 {
 }
 

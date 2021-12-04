@@ -6,17 +6,17 @@
 
 namespace rm_track
 {
-bool SameIDArmorSelector::input(const Buffer buffer)
+bool SameIDArmorSelector::input(const std::vector<Armor>& armors)
 {
   return true;
 }
 
-bool StaticArmorSelector::input(const Buffer buffer)
+bool StaticArmorSelector::input(const std::vector<Armor>& armors)
 {
   return true;
 }
 
-bool ClosestArmorSelector::input(const Buffer buffer)
+bool ClosestArmorSelector::input(const std::vector<Armor>& armors)
 {
   return true;
 }

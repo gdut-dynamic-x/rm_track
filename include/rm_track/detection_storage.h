@@ -45,6 +45,19 @@ public:
     targets_.push_back(Target{ .transform = transform, .confidence = confidence });
   }
 
+  std::vector<Target> eraseUselessData()
+  {
+    auto target_it = targets_.begin();
+    while (target_it != targets_.end())
+    {
+      if (target_it->state == Target::APPEAR || target_it->state == Target::EXPIRED ||
+          target_it->state == Target::NOT_EXIST)
+        targets_.erase(target_it);
+      target_it++;
+    }
+    return targets_;
+  }
+
   DetectionStorage(ros::Time stamp, const std::vector<geometry_msgs::Pose>& datas,
                    const std::vector<double>& confidences)
     : stamp_(stamp)

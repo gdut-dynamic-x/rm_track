@@ -189,4 +189,21 @@ void TimeCache::pruneList()
     storage_.pop_back();
 }
 
+std::vector<Target> TimeCache::eraseUselessData()
+{
+  std::vector<Target> output_targets;
+  auto storage_it = storage_.begin();
+  while (storage_it != storage_.end())
+  {
+    std::vector<Target> input_targets = storage_it->eraseUselessData();
+    if (input_targets.empty())
+      storage_.erase(storage_it);
+    else
+      for (auto target : input_targets)
+        output_targets.push_back(target);
+    storage_it++;
+  }
+  return output_targets;
+}
+
 }  // namespace rm_track

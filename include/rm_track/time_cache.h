@@ -21,6 +21,7 @@ public:
   bool insertData(DetectionStorage& data);
   double findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out);
   void updateState(ros::Time latest_time);
+  std::vector<Target> eraseUselessData();
 
   ros::Time getLatestTimestamp();
   ros::Time getOldestTimestamp();

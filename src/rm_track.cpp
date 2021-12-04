@@ -45,13 +45,13 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
 void RmTrack::run()
 {
-  Buffer buffer = buffer_;
+  std::vector<Armor> armors = buffer_.eraseUselessData();
   for (auto filter : logic_filters_)
-    filter.input(buffer);
+    filter.input(armors);
 
   for (auto selector : logic_selectors_)
   {
-    if (selector.input(buffer))
+    if (selector.input(armors))
     {
       target_armor_ = selector.output();
       break;

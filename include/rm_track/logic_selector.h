@@ -9,17 +9,11 @@
 
 namespace rm_track
 {
-struct Armor
-{
-  int id;
-  tf2::Transform transform;
-};
-
 class LogicSelectorBase
 {
 public:
   LogicSelectorBase() = default;
-  virtual bool input(const Buffer buffer);
+  virtual bool input(const std::vector<Armor>& armors);
   Armor output() const
   {
     return target_armor_;
@@ -33,21 +27,21 @@ class SameIDArmorSelector : public LogicSelectorBase
 {
 public:
   SameIDArmorSelector() = default;
-  bool input(const Buffer buffer) override;
+  bool input(const std::vector<Armor>& armors) override;
 };
 
 class StaticArmorSelector : public LogicSelectorBase
 {
 public:
   StaticArmorSelector() = default;
-  bool input(const Buffer buffer) override;
+  bool input(const std::vector<Armor>& armors) override;
 };
 
 class ClosestArmorSelector : public LogicSelectorBase
 {
 public:
   ClosestArmorSelector() = default;
-  bool input(const Buffer buffer) override;
+  bool input(const std::vector<Armor>& armors) override;
 };
 
 }  // namespace rm_track
