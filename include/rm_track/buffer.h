@@ -8,11 +8,6 @@
 
 namespace rm_track
 {
-struct Armor
-{
-  int id;
-  tf2::Transform transform;
-};
 class Buffer
 {
 public:
@@ -36,12 +31,12 @@ public:
     auto cache = id2caches_.begin();
     while (cache != id2caches_.end())
     {
-      std::vector<Target> input_targets = cache->second.eraseUselessData();
-      if (input_targets.empty())
+      std::vector<Armor> input_armors = cache->second.eraseUselessData();
+      if (input_armors.empty())
         id2caches_.erase(cache);
       else
-        for (auto target : input_targets)
-          output_armors.push_back(Armor{ .id = cache->first, .transform = target.transform });
+        for (auto armor : input_armors)
+          output_armors.push_back(Armor{ .stamp = armor.stamp, .id = cache->first, .transform = armor.transform });
       cache++;
     }
     return output_armors;

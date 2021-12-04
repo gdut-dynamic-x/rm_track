@@ -10,6 +10,12 @@
 
 namespace rm_track
 {
+struct Armor
+{
+  ros::Time stamp;
+  int id;
+  tf2::Transform transform;
+};
 class TimeCache
 {
 public:
@@ -21,7 +27,7 @@ public:
   bool insertData(DetectionStorage& data);
   double findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out);
   void updateState(ros::Time latest_time);
-  std::vector<Target> eraseUselessData();
+  std::vector<Armor> eraseUselessData();
 
   ros::Time getLatestTimestamp();
   ros::Time getOldestTimestamp();
