@@ -49,9 +49,18 @@ void TimeCache::updateState(ros::Time latest_time)
 
   if (storage_it->stamp_ == latest_time)
   {
-    if ((storage_it + 1) == storage_.end() || storage_it->stamp_ - (storage_it + 1)->stamp_ > max_lost_time_)
+    if ((storage_it + 1) == storage_.end())
+    {
       for (auto target : storage_it->targets_)
         target.state = Target::APPEAR;
+    }
+    else if ((storage_it + 1) != storage_.end() && storage_it->stamp_ - (storage_it + 1)->stamp_ > max_lost_time_)
+    {
+      for (auto target : storage_it->targets_)
+        target.state = Target::APPEAR;
+      for (auto target : (storage_it + 1)->targets_)
+        target.state = Target::NOT_EXIST;
+    }
     else
     {
       // The number of armor with the same ID not changed
