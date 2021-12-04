@@ -42,6 +42,7 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
   apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_);
+  track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
 }
 
 void RmTrack::run()
@@ -67,7 +68,17 @@ void RmTrack::run()
         break;
       }
 
-  // TODO Publish target armor
+  rm_msgs::TrackData track_data;
+  track_data.stamp = target_armor_.stamp;
+  track_data.id = target_armor_.id;
+  track_data.camera2detection.x = target_armor_.transform.getOrigin().x();
+  track_data.camera2detection.y = target_armor_.transform.getOrigin().y();
+  track_data.camera2detection.z = target_armor_.transform.getOrigin().z();
+  track_data.detection_vel.x = 0.;
+  track_data.detection_vel.y = 0.;
+  track_data.detection_vel.z = 0.;
+
+  track_pub_.publish(track_data);
 }
 
 }  // namespace rm_track

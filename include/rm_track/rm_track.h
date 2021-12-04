@@ -21,6 +21,7 @@ private:
   std::vector<LogicFilterBase> logic_filters_;
   std::vector<LogicSelectorBase> logic_selectors_;
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
+  ros::Publisher track_pub_;
 };
 
 }  // namespace rm_track
