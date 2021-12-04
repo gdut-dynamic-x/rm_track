@@ -13,7 +13,7 @@ class LogicFilterBase
 {
 public:
   explicit LogicFilterBase(XmlRpc::XmlRpcValue rpc_value);
-  virtual void input(std::vector<Armor>& armors);
+  virtual void input(Buffer& buffer);
 
 protected:
   double basic_range_[2];
@@ -24,21 +24,21 @@ class HeightFilter : public LogicFilterBase
 {
 public:
   explicit HeightFilter(XmlRpc::XmlRpcValue rpc_value);
-  void input(std::vector<Armor>& armors) override;
+  void input(Buffer& buffer) override;
 };
 
 class DistanceFilter : public LogicFilterBase
 {
 public:
   explicit DistanceFilter(XmlRpc::XmlRpcValue rpc_value);
-  void input(std::vector<Armor>& armors) override;
+  void input(Buffer& buffer) override;
 };
 
 class ConfidenceFilter : public LogicFilterBase
 {
 public:
   explicit ConfidenceFilter(XmlRpc::XmlRpcValue rpc_value);
-  void input(std::vector<Armor>& armors) override;
+  void input(Buffer& buffer) override;
 };
 
 }  // namespace rm_track

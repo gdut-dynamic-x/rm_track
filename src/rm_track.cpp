@@ -3,6 +3,7 @@
 //
 
 #include "rm_track/rm_track.h"
+#include <rm_msgs/TrackData.h>
 
 namespace rm_track
 {
@@ -45,18 +46,22 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
 void RmTrack::run()
 {
-  std::vector<Armor> armors = buffer_.eraseUselessData();
+  Buffer buffer = buffer_;
+  buffer.eraseUselessData();
   for (auto filter : logic_filters_)
-    filter.input(armors);
+    filter.input(buffer);
 
-  if (armors.empty())
+  if (buffer.id2caches_.empty())
     return;
 
-  if (armors.size() == 1)
-    target_armor_ = armors.front();
+  if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_.size() == 1 &&
+      buffer.id2caches_.begin()->second.storage_.front().targets_.size() == 1)
+    target_armor_ = Armor{ .stamp = buffer.id2caches_.begin()->second.storage_.front().stamp_,
+                           .id = buffer.id2caches_.begin()->first,
+                           .transform = buffer.id2caches_.begin()->second.storage_.front().targets_.front().transform };
   else
     for (auto selector : logic_selectors_)
-      if (selector.input(armors))
+      if (selector.input(buffer))
       {
         target_armor_ = selector.output();
         break;
