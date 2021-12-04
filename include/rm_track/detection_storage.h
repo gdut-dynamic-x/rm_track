@@ -15,7 +15,8 @@ struct Target
     APPEAR,
     EXIST,
     DISAPPEAR,
-    NOT_EXIST
+    NOT_EXIST,
+    EXPIRED
   } state;
 
   tf2::Transform transform;

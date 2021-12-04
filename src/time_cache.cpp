@@ -60,9 +60,10 @@ void TimeCache::updateState(ros::Time latest_time)
         for (int i = 0; i < storage_it->targets_.size(); ++i)
         {
           storage_it->targets_[i].state = Target::EXIST;
-          (storage_it + 1)->targets_[i].state = Target::EXIST;
+          (storage_it + 1)->targets_[i].state = Target::EXPIRED;
         }
       }
+
       // The number of armor with the same ID changed from 1 to 2
       else if ((storage_it + 1)->targets_.size() == 1 && storage_it->targets_.size() == 2)
       {
@@ -77,14 +78,14 @@ void TimeCache::updateState(ros::Time latest_time)
         for (auto storage : storage_)
         {
           if (storage.targets_.size() == 2 && ((storage.targets_.begin()->state == Target::DISAPPEAR &&
-                                                storage.targets_.end()->state == Target::EXIST) ||
-                                               (storage.targets_.begin()->state == Target::EXIST &&
+                                                storage.targets_.end()->state == Target::EXPIRED) ||
+                                               (storage.targets_.begin()->state == Target::EXPIRED &&
                                                 storage.targets_.end()->state == Target::DISAPPEAR)))
           {
             first_distance >= second_distance ? storage_it->targets_.begin()->state :
                                                 storage_it->targets_.end()->state = Target::EXIST;
-            storage.targets_.begin()->state = Target::EXIST;
-            storage.targets_.end()->state = Target::EXIST;
+            storage.targets_.begin()->state = Target::EXPIRED;
+            storage.targets_.end()->state = Target::EXPIRED;
             break;
           }
           if (latest_time - storage.stamp_ > max_lost_time_)
@@ -106,11 +107,17 @@ void TimeCache::updateState(ros::Time latest_time)
                                   (storage_it + 1)->targets_.end()->transform.getOrigin())
                                      .length();
         if (first_distance >= second_distance)
+        {
           (storage_it + 1)->targets_.begin()->state =
               (storage_it + 1)->targets_.begin()->state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
+          (storage_it + 1)->targets_.end()->state = Target::EXPIRED;
+        }
         else
+        {
+          (storage_it + 1)->targets_.begin()->state = Target::EXPIRED;
           (storage_it + 1)->targets_.end()->state =
               (storage_it + 1)->targets_.end()->state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
+        }
         storage_it->targets_.begin()->state = Target::EXIST;
       }
       else
@@ -122,15 +129,12 @@ void TimeCache::updateState(ros::Time latest_time)
     if (latest_time - storage_it->stamp_ <= max_lost_time_)
       for (auto target : storage_it->targets_)
         target.state = target.state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
+    else
+      for (auto target : storage_it->targets_)
+        target.state = Target::NOT_EXIST;
   }
   else
     ROS_ERROR("Future timestamp data appears");
-
-  // Traverse the cache to find out if there is armor that has just disappeared
-  for (auto storage : storage_)
-    for (auto target : storage.targets_)
-      if (target.state == Target::DISAPPEAR && latest_time - storage.stamp_ > max_lost_time_)
-        target.state = Target::NOT_EXIST;
 }
 
 double TimeCache::findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out)
