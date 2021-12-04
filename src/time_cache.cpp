@@ -56,8 +56,13 @@ void TimeCache::updateState(ros::Time latest_time)
     {
       // The number of armor with the same ID not changed
       if ((storage_it + 1)->targets_.size() == storage_it->targets_.size())
-        storage_it->targets_.begin()->state = Target::EXIST;
-
+      {
+        for (int i = 0; i < storage_it->targets_.size(); ++i)
+        {
+          storage_it->targets_[i].state = Target::EXIST;
+          (storage_it + 1)->targets_[i].state = Target::EXIST;
+        }
+      }
       // The number of armor with the same ID changed from 1 to 2
       else if ((storage_it + 1)->targets_.size() == 1 && storage_it->targets_.size() == 2)
       {
@@ -78,6 +83,8 @@ void TimeCache::updateState(ros::Time latest_time)
           {
             first_distance >= second_distance ? storage_it->targets_.begin()->state :
                                                 storage_it->targets_.end()->state = Target::EXIST;
+            storage.targets_.begin()->state = Target::EXIST;
+            storage.targets_.end()->state = Target::EXIST;
             break;
           }
           if (latest_time - storage.stamp_ > max_lost_time_)
