@@ -49,14 +49,18 @@ void RmTrack::run()
   for (auto filter : logic_filters_)
     filter.input(armors);
 
-  for (auto selector : logic_selectors_)
-  {
-    if (selector.input(armors))
-    {
-      target_armor_ = selector.output();
-      break;
-    }
-  }
+  if (armors.empty())
+    return;
+
+  if (armors.size() == 1)
+    target_armor_ = armors.front();
+  else
+    for (auto selector : logic_selectors_)
+      if (selector.input(armors))
+      {
+        target_armor_ = selector.output();
+        break;
+      }
 
   // TODO Publish target armor
 }
