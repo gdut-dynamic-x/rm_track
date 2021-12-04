@@ -45,7 +45,7 @@ public:
     targets_.push_back(Target{ .transform = transform, .confidence = confidence });
   }
 
-  std::vector<Target> eraseUselessData()
+  void eraseUselessData()
   {
     auto target_it = targets_.begin();
     while (target_it != targets_.end())
@@ -55,7 +55,6 @@ public:
         targets_.erase(target_it);
       target_it++;
     }
-    return targets_;
   }
 
   DetectionStorage(ros::Time stamp, const std::vector<geometry_msgs::Pose>& datas,

@@ -25,22 +25,19 @@ public:
     for (auto cache : id2caches_)
       cache.second.updateState(latest_time);
   }
-  std::vector<Armor> eraseUselessData()
+  void eraseUselessData()
   {
-    std::vector<Armor> output_armors;
     auto cache = id2caches_.begin();
     while (cache != id2caches_.end())
     {
-      std::vector<Armor> input_armors = cache->second.eraseUselessData();
-      if (input_armors.empty())
+      cache->second.eraseUselessData();
+      if (cache->second.storage_.empty())
         id2caches_.erase(cache);
-      else
-        for (auto armor : input_armors)
-          output_armors.push_back(Armor{ .stamp = armor.stamp, .id = cache->first, .transform = armor.transform });
       cache++;
     }
-    return output_armors;
   }
+
+  std::unordered_map<int, TimeCache> id2caches_;
 
 private:
   TimeCache& allocateCache(int id)
@@ -48,6 +45,5 @@ private:
     id2caches_.insert(std::make_pair(id, TimeCache()));
     return id2caches_[id];
   }
-  std::unordered_map<int, TimeCache> id2caches_;
 };
 }  // namespace rm_track

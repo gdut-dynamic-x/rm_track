@@ -10,12 +10,6 @@
 
 namespace rm_track
 {
-struct Armor
-{
-  ros::Time stamp;
-  int id;
-  tf2::Transform transform;
-};
 class TimeCache
 {
 public:
@@ -27,10 +21,12 @@ public:
   bool insertData(DetectionStorage& data);
   double findClosestInPast(const ros::Time& time_in, ros::Time& time_out, const Target& in, Target* out);
   void updateState(ros::Time latest_time);
-  std::vector<Armor> eraseUselessData();
+  void eraseUselessData();
 
   ros::Time getLatestTimestamp();
   ros::Time getOldestTimestamp();
+
+  std::deque<DetectionStorage> storage_;
 
 private:
   // TODO: Interpolate implementation
@@ -41,6 +37,5 @@ private:
 
   ros::Duration max_storage_time_;
   ros::Duration max_lost_time_;
-  std::deque<DetectionStorage> storage_;
 };
 }  // namespace rm_track
