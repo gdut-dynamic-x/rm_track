@@ -34,7 +34,8 @@ include_directories(
 )
 
 ## Declare a C++ executable
-add_library(${PROJECT_NAME}
+add_executable(${PROJECT_NAME}
+        src/main.cpp
         src/time_cache.cpp
         src/logic_filter.cpp
         src/logic_selector.cpp
