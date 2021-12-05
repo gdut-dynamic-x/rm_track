@@ -54,7 +54,7 @@ protected:
   }
 
 private:
-  virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg);
+  virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg) = 0;
 
   Buffer& buffer_;
   tf2_ros::Buffer tf_buffer_;

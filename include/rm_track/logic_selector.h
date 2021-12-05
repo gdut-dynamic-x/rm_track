@@ -19,7 +19,10 @@ class LogicSelectorBase
 {
 public:
   LogicSelectorBase() = default;
-  virtual bool input(const Buffer& buffer);
+  virtual bool input(const Buffer& buffer)
+  {
+    return true;
+  }
   Armor output() const
   {
     return target_armor_;
