@@ -6,6 +6,11 @@
 
 namespace rm_track
 {
+bool LastArmorSelector::input(const Buffer& buffer)
+{
+  return true;
+}
+
 bool SameIDArmorSelector::input(const Buffer& buffer)
 {
   return true;

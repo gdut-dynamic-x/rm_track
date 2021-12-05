@@ -29,7 +29,9 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   if (nh.getParam("selectors", selectors))
     for (int i = 0; i < selectors.size(); ++i)
     {
-      if (selectors[i] == "same_id_armor")
+      if (selectors[i] == "last_armor")
+        logic_selectors_.push_back(LastArmorSelector());
+      else if (selectors[i] == "same_id_armor")
         logic_selectors_.push_back(SameIDArmorSelector());
       else if (selectors[i] == "static_armor")
         logic_selectors_.push_back(StaticArmorSelector());

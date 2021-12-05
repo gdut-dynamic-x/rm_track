@@ -32,6 +32,13 @@ protected:
   Armor last_armor_, target_armor_;
 };
 
+class LastArmorSelector : public LogicSelectorBase
+{
+public:
+  LastArmorSelector() = default;
+  bool input(const Buffer& buffer) override;
+};
+
 class SameIDArmorSelector : public LogicSelectorBase
 {
 public:
