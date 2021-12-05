@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<launch>
+    <arg name="launch_prefix" default=""/>
+    <arg name="node_namespace" default="apriltag_ros_continuous_node"/>
+    <arg name="camera_name" default="galaxy_camera"/>
+    <arg name="camera_frame" default="camera"/>
+    <arg name="image_topic" default="image_raw"/>
+
+    <!-- start detection-->
+    <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
+        <arg name="launch_prefix" value="$(arg launch_prefix)"/>
+        <arg name="node_namespace" value="$(arg node_namespace)"/>
+        <arg name="camera_name" value="$(arg camera_name)"/>
+        <arg name="camera_frame" value="$(arg camera_frame)"/>
+        <arg name="image_topic" value="$(arg image_topic)"/>
+    </include>
+
+    <rosparam command="load" file="$(find rm_track)/config/settings.yaml" ns="$(arg node_namespace)"/>
+    <rosparam command="load" file="$(find rm_track)/config/tags.yaml" ns="$(arg node_namespace)"/>
+
+</launch>
