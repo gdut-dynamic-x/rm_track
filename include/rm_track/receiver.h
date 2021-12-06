@@ -40,7 +40,7 @@ protected:
     {
       ROS_WARN("Failure %s\n", ex.what());
     }
-    if (id2storage_.find(id) != id2storage_.end())
+    if (id2storage_.find(id) == id2storage_.end())
       id2storage_.insert(std::make_pair(id, DetectionStorage(pose_out.header.stamp)));
     id2storage_.find(id)->second.insertData(pose_out.pose, confidence);
   }
