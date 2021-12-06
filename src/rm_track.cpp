@@ -43,7 +43,7 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   else
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
-  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_);
+  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, "/tag_detections");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
 }
 

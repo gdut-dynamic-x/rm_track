@@ -19,10 +19,10 @@ template <class MsgType>
 class ReceiverBase
 {
 public:
-  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer)
+  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, std::string topic)
     : buffer_(buffer), tf_listener(tf_buffer_), tf_filter_(msg_sub_, tf_buffer_, "map", 10, 0)
   {
-    msg_sub_.subscribe(nh, "/detection", 10);
+    msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
 
