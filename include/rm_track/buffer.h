@@ -22,7 +22,7 @@ public:
   }
   void updateState(ros::Time latest_time)
   {
-    for (auto cache : id2caches_)
+    for (auto& cache : id2caches_)
       cache.second.updateState(latest_time);
   }
   void eraseUselessData()
