@@ -53,7 +53,8 @@ public:
       if (target_it->state == Target::APPEAR || target_it->state == Target::EXPIRED ||
           target_it->state == Target::NOT_EXIST)
         targets_.erase(target_it);
-      target_it++;
+      else
+        target_it++;
     }
   }
 

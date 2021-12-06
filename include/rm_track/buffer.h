@@ -27,13 +27,14 @@ public:
   }
   void eraseUselessData()
   {
-    auto cache = id2caches_.begin();
-    while (cache != id2caches_.end())
+    auto cache_it = id2caches_.begin();
+    while (cache_it != id2caches_.end())
     {
-      cache->second.eraseUselessData();
-      if (cache->second.storage_.empty())
-        id2caches_.erase(cache);
-      cache++;
+      cache_it->second.eraseUselessData();
+      if (cache_it->second.storage_.empty())
+        id2caches_.erase(cache_it++);
+      else
+        cache_it++;
     }
   }
 
