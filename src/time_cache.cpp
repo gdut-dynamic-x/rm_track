@@ -196,7 +196,7 @@ void TimeCache::eraseUselessData()
   {
     storage_it->eraseUselessData();
     if (storage_it->targets_.empty())
-      storage_.erase(storage_it);
+      storage_it = storage_.erase(storage_it);
     else
       storage_it++;
   }
