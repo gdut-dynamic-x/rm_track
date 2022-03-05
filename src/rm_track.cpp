@@ -58,12 +58,12 @@ void RmTrack::run()
   if (buffer.id2caches_.empty())
     return;
 
-  if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_.size() == 1 &&
-      buffer.id2caches_.begin()->second.storage_.begin()->targets_.size() == 1)
+  if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_que_.size() == 1 &&
+      buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.size() == 1)
     target_armor_ =
-        Armor{ .stamp = buffer.id2caches_.begin()->second.storage_.begin()->stamp_,
+        Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
                .id = buffer.id2caches_.begin()->first,
-               .transform = buffer.id2caches_.begin()->second.storage_.begin()->targets_.begin()->transform };
+               .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
   else
     for (auto selector : logic_selectors_)
       if (selector.input(buffer))
