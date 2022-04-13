@@ -46,6 +46,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, "/tag_detections");
   rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
+  ros::NodeHandle root_nh;
+  track_cmd_pub_ = root_nh.advertise<rm_msgs::TrackCmd>("/track_command", 10);
 }
 
 void RmTrack::run()
@@ -58,8 +60,7 @@ void RmTrack::run()
   if (buffer.id2caches_.empty())
     return;
 
-  if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_que_.size() == 1 &&
-      buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.size() == 1)
+  if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.size() == 1)
     target_armor_ =
         Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
                .id = buffer.id2caches_.begin()->first,
@@ -85,6 +86,20 @@ void RmTrack::run()
   track_data.detection_vel.z = 0.;
 
   track_pub_.publish(track_data);
+
+  rm_msgs::TrackCmd track_cmd;
+  track_cmd.target_pos.header.frame_id = "map";
+  track_cmd.target_pos.header.stamp = target_armor_.stamp;
+  track_cmd.target_pos.point.x = target_armor_.transform.getOrigin().x();
+  track_cmd.target_pos.point.y = target_armor_.transform.getOrigin().y();
+  track_cmd.target_pos.point.z = target_armor_.transform.getOrigin().z();
+  track_cmd.target_vel.header.frame_id = "map";
+  track_cmd.target_vel.header.stamp = target_armor_.stamp;
+  track_cmd.target_vel.vector.x = 0.;
+  track_cmd.target_vel.vector.y = 0.;
+  track_cmd.target_vel.vector.z = 0.;
+
+  track_cmd_pub_.publish(track_cmd);
 }
 
 }  // namespace rm_track
