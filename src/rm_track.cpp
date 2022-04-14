@@ -88,16 +88,14 @@ void RmTrack::run()
   track_pub_.publish(track_data);
 
   rm_msgs::TrackCmd track_cmd;
-  track_cmd.target_pos.header.frame_id = "map";
-  track_cmd.target_pos.header.stamp = target_armor_.stamp;
-  track_cmd.target_pos.point.x = target_armor_.transform.getOrigin().x();
-  track_cmd.target_pos.point.y = target_armor_.transform.getOrigin().y();
-  track_cmd.target_pos.point.z = target_armor_.transform.getOrigin().z();
-  track_cmd.target_vel.header.frame_id = "map";
-  track_cmd.target_vel.header.stamp = target_armor_.stamp;
-  track_cmd.target_vel.vector.x = 0.;
-  track_cmd.target_vel.vector.y = 0.;
-  track_cmd.target_vel.vector.z = 0.;
+  track_cmd.header.frame_id = "map";
+  track_cmd.header.stamp = target_armor_.stamp;
+  track_cmd.target_pos.x = target_armor_.transform.getOrigin().x();
+  track_cmd.target_pos.y = target_armor_.transform.getOrigin().y();
+  track_cmd.target_pos.z = target_armor_.transform.getOrigin().z();
+  track_cmd.target_vel.x = 0.;
+  track_cmd.target_vel.y = 0.;
+  track_cmd.target_vel.z = 0.;
 
   track_cmd_pub_.publish(track_cmd);
 }
