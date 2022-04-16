@@ -19,18 +19,20 @@ using namespace casadi;
 class EkfBase
 {
 public:
-  EkfBase();
-  void predict(const vector<double>& y, const std::vector<double>& u, double dt);
-  void update(const vector<double>& y, const std::vector<double>& u, double dt);
+  EkfBase(const Function& f, const Function& g);
+
+  void predict(const DM& u, double dt);
+  void update(const DM& y, const DM& u, double dt);
+
+  void setInitialGuess(const DM& x0, const DM& p0);
+  void setNoise(const DM& Q, const DM& R);
+  DM& getState() const;
+  DM& getCovariance() const;
 
   virtual Function getF() = 0;
   virtual Function getG() = 0;
 
 protected:
-  const size_t n_x_;  // number of states
-  const size_t n_u_;  // number of controls
-  const size_t n_y_;  // number of measurements
-
   Function f_;      // discrete process model of the system
   Function g_;      // discrete measurement model of the system
   Function jac_f_;  // jacobian of the system's ode with respect to x
@@ -41,9 +43,6 @@ protected:
 
   DM R_;
   DM Q_;
-
-  // temporary variables
-  DM A_, C_, P12_, K_, y_pred_;
 };
 
 }  // namespace rm_track
