@@ -6,6 +6,7 @@
 #include "receiver.h"
 #include "logic_filter.h"
 #include "logic_selector.h"
+#include "ekf/ekf_base.h"
 #include <rm_msgs/TrackCmd.h>
 
 namespace rm_track
