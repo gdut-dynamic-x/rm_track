@@ -1,11 +1,14 @@
 <launch>
     <arg name="robot_type" default="$(env ROBOT_TYPE)" doc="Robot type [standard, hero, engineer]"/>
     <arg name="camera_tf" default="true" doc="Set true when test the node separately"/>
+    <arg name="camera_frame" default="camera_optical_frame"/>
+
+    <remap from="/track_command" to="/controllers/gimbal_controller/track_command"/>
 
     <rosparam file="$(find rm_track)/config/$(arg robot_type).yaml" command="load"/>
 
     <node name="rm_track" pkg="rm_track" type="rm_track" respawn="false"/>
 
     <node if="$(arg camera_tf)" pkg="tf2_ros" type="static_transform_publisher" name="camera_tf_publisher"
-          args="0 0 0.5 0.5 0.5 0.5 0.5 map camera"/>
+          args="0 0 0.5 0.5 0.5 0.5 0.5 map $(arg camera_frame)"/>
 </launch>

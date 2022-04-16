@@ -31,7 +31,7 @@ public:
     while (cache_it != id2caches_.end())
     {
       cache_it->second.eraseUselessData();
-      if (cache_it->second.storage_.empty())
+      if (cache_it->second.storage_que_.empty())
         id2caches_.erase(cache_it++);
       else
         cache_it++;

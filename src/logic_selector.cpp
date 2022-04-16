@@ -8,33 +8,37 @@ namespace rm_track
 {
 bool LastArmorSelector::input(const Buffer& buffer)
 {
-  target_armor_ = Armor{ .stamp = buffer.id2caches_.begin()->second.storage_.begin()->stamp_,
-                         .id = buffer.id2caches_.begin()->first,
-                         .transform = buffer.id2caches_.begin()->second.storage_.begin()->targets_.begin()->transform };
+  target_armor_ =
+      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
+             .id = buffer.id2caches_.begin()->first,
+             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
   return true;
 }
 
 bool SameIDArmorSelector::input(const Buffer& buffer)
 {
-  target_armor_ = Armor{ .stamp = buffer.id2caches_.begin()->second.storage_.begin()->stamp_,
-                         .id = buffer.id2caches_.begin()->first,
-                         .transform = buffer.id2caches_.begin()->second.storage_.begin()->targets_.begin()->transform };
+  target_armor_ =
+      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
+             .id = buffer.id2caches_.begin()->first,
+             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
   return true;
 }
 
 bool StaticArmorSelector::input(const Buffer& buffer)
 {
-  target_armor_ = Armor{ .stamp = buffer.id2caches_.begin()->second.storage_.begin()->stamp_,
-                         .id = buffer.id2caches_.begin()->first,
-                         .transform = buffer.id2caches_.begin()->second.storage_.begin()->targets_.begin()->transform };
+  target_armor_ =
+      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
+             .id = buffer.id2caches_.begin()->first,
+             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
   return true;
 }
 
 bool ClosestArmorSelector::input(const Buffer& buffer)
 {
-  target_armor_ = Armor{ .stamp = buffer.id2caches_.begin()->second.storage_.begin()->stamp_,
-                         .id = buffer.id2caches_.begin()->first,
-                         .transform = buffer.id2caches_.begin()->second.storage_.begin()->targets_.begin()->transform };
+  target_armor_ =
+      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
+             .id = buffer.id2caches_.begin()->first,
+             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
   return true;
 }
 

@@ -26,7 +26,7 @@ public:
   ros::Time getLatestTimestamp();
   ros::Time getOldestTimestamp();
 
-  std::deque<DetectionStorage> storage_;
+  std::deque<DetectionStorage> storage_que_;
 
 private:
   // TODO: Interpolate implementation
