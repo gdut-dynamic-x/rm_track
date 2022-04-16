@@ -19,11 +19,8 @@ using namespace casadi;
 class EkfBase
 {
 public:
-  EkfBase(const Function& f, const Function& g);
-
   void predict(const DM& u, double dt);
   void update(const DM& y, const DM& u, double dt);
-
   void setInitialGuess(const DM& x0, const DM& p0);
   void setNoise(const DM& Q, const DM& R);
   DM& getState() const;
@@ -33,6 +30,8 @@ public:
   virtual Function getG() = 0;
 
 protected:
+  void setup(const Function& f, const Function& g);
+
   Function f_;      // discrete process model of the system
   Function g_;      // discrete measurement model of the system
   Function jac_f_;  // jacobian of the system's ode with respect to x

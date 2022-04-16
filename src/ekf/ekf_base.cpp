@@ -5,7 +5,7 @@
 
 namespace rm_track
 {
-EkfBase::EkfBase(const Function& f, const Function& g) : f_(f), g_(g)
+void EkfBase::setup(const Function& f, const Function& g)
 {
   SX x = SX::sym("x", f_.size1_in(0));
   SX u = SX::sym("u", f_.size1_in(1));
