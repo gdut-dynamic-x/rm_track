@@ -39,7 +39,9 @@ void EkfBase::update(const DM& z, const DM& u, double dt)
   DM s = mtimes(h, mtimes(P_, h.T())) + R_ / dt;
   // Near-optimal Kalman gain TODO(qiayuan): pseudo inverse?
   DM k = mtimes(P_, mtimes(transpose(h), inv(s)));
+  // Updated state estimate
   x_ += mtimes(k, y);
+  // Updated covariance estimate
   P_ -= mtimes(mtimes(k, h), P_);
 }
 
