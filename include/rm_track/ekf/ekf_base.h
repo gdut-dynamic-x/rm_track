@@ -8,7 +8,7 @@
 #pragma once
 
 #include <vector>
-
+#include <ros/ros.h>
 #include <casadi/casadi.hpp>
 
 namespace rm_track
@@ -22,15 +22,15 @@ public:
   void predict(const DM& u, double dt);
   void update(const DM& y, const DM& u, double dt);
   void setInitialGuess(const DM& x0, const DM& p0);
+  void getQR(const ros::NodeHandle& nh);
   void setNoise(const DM& Q, const DM& R);
-  DM& getState() const;
-  DM& getCovariance() const;
-
-  virtual Function getF() = 0;
-  virtual Function getG() = 0;
+  DM getState() const;
+  DM getCovariance() const;
+  bool inited_ = false;
 
 protected:
   void setup(const Function& f, const Function& g);
+  DM getMatrix(const ros::NodeHandle& nh, const std::string& name, int dimension);
 
   Function f_;      // discrete process model of the system
   Function g_;      // discrete measurement model of the system
@@ -40,8 +40,8 @@ protected:
   DM x_;  // current estimate of the state vector
   DM P_;  // current estimate of the covariance matrix
 
-  DM R_;
-  DM Q_;
+  static DM R_;
+  static DM Q_;
 };
 
 }  // namespace rm_track
