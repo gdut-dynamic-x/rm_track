@@ -43,8 +43,9 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   else
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
-  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, "/tag_detections");
-  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, "/detection");
+  predictor_.getQR(nh);
+  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, update_flag_, "/tag_detections");
+  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, update_flag_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
   ros::NodeHandle root_nh;
   track_cmd_pub_ = root_nh.advertise<rm_msgs::TrackCmd>("/track_command", 10);
@@ -52,6 +53,10 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
 void RmTrack::run()
 {
+  if (!update_flag_)
+    return;
+  else
+    update_flag_ = false;
   Buffer buffer = buffer_;
   buffer.eraseUselessData();
   for (auto filter : logic_filters_)
@@ -74,7 +79,21 @@ void RmTrack::run()
       }
 
   // TODO ekf
-
+  if (!predictor_.inited_)
+  {
+    double x[6] = { target_armor_.transform.getOrigin().x(), 0, target_armor_.transform.getOrigin().y(), 0,
+                    target_armor_.transform.getOrigin().z(), 0 };
+    predictor_.reset(x);
+  }
+  else
+  {
+    auto it = buffer_.id2caches_.begin()->second.storage_que_.begin();
+    double dt = (it->stamp_ - (it + 1)->stamp_).toSec();
+    predictor_.predict(dt);
+    double z[3] = { target_armor_.transform.getOrigin().x(), target_armor_.transform.getOrigin().y(),
+                    target_armor_.transform.getOrigin().z() };
+    predictor_.update(z, dt);
+  }
   rm_msgs::TrackData track_data;
   track_data.stamp = target_armor_.stamp;
   track_data.id = target_armor_.id;
@@ -87,15 +106,17 @@ void RmTrack::run()
 
   track_pub_.publish(track_data);
 
+  double x[6];
+  predictor_.getState(x);
   rm_msgs::TrackCmd track_cmd;
   track_cmd.header.frame_id = "map";
   track_cmd.header.stamp = target_armor_.stamp;
-  track_cmd.target_pos.x = target_armor_.transform.getOrigin().x();
-  track_cmd.target_pos.y = target_armor_.transform.getOrigin().y();
-  track_cmd.target_pos.z = target_armor_.transform.getOrigin().z();
-  track_cmd.target_vel.x = 0.;
-  track_cmd.target_vel.y = 0.;
-  track_cmd.target_vel.z = 0.;
+  track_cmd.target_pos.x = x[0];
+  track_cmd.target_pos.y = x[2];
+  track_cmd.target_pos.z = x[4];
+  track_cmd.target_vel.x = x[1];
+  track_cmd.target_vel.y = x[3];
+  track_cmd.target_vel.z = x[5];
 
   track_cmd_pub_.publish(track_cmd);
 }

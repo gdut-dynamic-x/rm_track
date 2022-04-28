@@ -19,8 +19,8 @@ template <class MsgType>
 class ReceiverBase
 {
 public:
-  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, std::string topic)
-    : buffer_(buffer), tf_listener(tf_buffer_), tf_filter_(msg_sub_, tf_buffer_, "map", 10, 0)
+  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, bool& update_flag, std::string topic)
+    : buffer_(buffer), update_flag_(update_flag), tf_listener(tf_buffer_), tf_filter_(msg_sub_, tf_buffer_, "map", 10, 0)
   {
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
@@ -28,6 +28,7 @@ public:
 
 protected:
   std::unordered_map<int, DetectionStorage> id2storage_;
+  bool& update_flag_;
 
   void insertData(int id, const geometry_msgs::PoseStamped& pose, double confidence)
   {
@@ -71,6 +72,7 @@ public:
 private:
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
+    update_flag_ = true;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
@@ -91,6 +93,7 @@ public:
 private:
   void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
+    update_flag_ = true;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;

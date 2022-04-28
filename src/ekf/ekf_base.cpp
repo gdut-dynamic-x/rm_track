@@ -7,6 +7,8 @@ namespace rm_track
 {
 void EkfBase::setup(const Function& f, const Function& g)
 {
+  f_ = f;
+  g_ = g;
   SX x = SX::sym("x", f_.size1_in(0));
   SX u = SX::sym("u", f_.size1_in(1));
   SX dt = SX::sym("dt", 1);
@@ -49,6 +51,7 @@ void EkfBase::setInitialGuess(const DM& x0, const DM& p0)
 {
   x_ = x0;
   P_ = p0;
+  inited_ = true;
 }
 
 void EkfBase::setNoise(const DM& Q, const DM& R)
@@ -56,5 +59,44 @@ void EkfBase::setNoise(const DM& Q, const DM& R)
   Q_ = Q;
   R_ = R;
 }
+DM EkfBase::getState() const
+{
+  return x_;
+}
+DM EkfBase::getCovariance() const
+{
+  return Q_;
+}
+void EkfBase::getQR(const ros::NodeHandle& nh)
+{
+  int state_dimension = f_.size1_in(0);
+  int measure_dimension = g_.size1_out(0);
+  setNoise(getMatrix(nh, "Q", state_dimension), getMatrix(nh, "R", measure_dimension));
+}
+DM EkfBase::getMatrix(const ros::NodeHandle& nh, const std::string& name, int dimension)
+{
+  XmlRpc::XmlRpcValue matrix;
+  DM m(dimension, dimension);
+  nh.getParam(name, matrix);
+  ROS_ASSERT(matrix.getType() == XmlRpc::XmlRpcValue::TypeArray);
+  ROS_ASSERT(matrix.size() == dimension);
+  for (int i = 0; i < dimension; ++i)
+  {
+    ROS_ASSERT(matrix[i].getType() == XmlRpc::XmlRpcValue::TypeArray);
+    ROS_ASSERT(matrix[i].size() == dimension);
+    for (int j = 0; j < dimension; ++j)
+    {
+      ROS_ASSERT(matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeDouble ||
+                 matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeInt);
+      if (matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeDouble)
+        m(i, j) = static_cast<double>(matrix[i][j]);
+      if (matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeInt)
+        m(i, j) = static_cast<int>(matrix[i][j]);
+    }
+  }
+  return m;
+}
 
+DM EkfBase::Q_;
+DM EkfBase::R_;
 }  // namespace rm_track
