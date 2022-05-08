@@ -7,6 +7,7 @@
 #include "logic_filter.h"
 #include "logic_selector.h"
 #include "ekf/linear_kf.h"
+#include "ekf/armor_ekf.h"
 #include <rm_msgs/TrackCmd.h>
 
 namespace rm_track
