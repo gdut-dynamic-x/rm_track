@@ -17,7 +17,7 @@ public:
     SX dt = SX::sym("dt", 1);
 
     // State X ( 6 + 24 = 30) consists of two parts shown below
-    // Chassis (5):
+    // Chassis (6):
     //    Plane Position and velocity of the center $x_c, y_c, \dot{x}_c, \dot_{y}_c$;
     //    2D Orientation $\theta$ and its velocity $\omega$ ;
     // Armor (4 x 6 = 24):
