@@ -18,7 +18,7 @@ public:
 
     // State X ( 6 + 24 = 30) consists of two parts shown below
     // Chassis (6):
-    //    Plane Position and velocity of the center $x_c, y_c, \dot{x}_c, \dot_{y}_c$;
+    //    Position and velocity of the center $x_c, y_c, \dot{x}_c, \dot_{y}_c$ in 2D plane;
     //    2D Orientation $\theta$ and its velocity $\omega$ ;
     // Armor (4 x 6 = 24):
     //    Plane Position and velocity of center $x_{0 \ldots 3}, y_{0 \ldots 3}, \dot{x}_{0 \ldots 3}, \dot{y}_{0 \ldots
@@ -29,7 +29,7 @@ public:
     SX x = SX::sym("x", 30);
 
     // Measure Z, (4 x 4 = 16):
-    //    Plane Position of armor center $x,y$;
+    //    Position of armor center $x,y$ in 2D plane;
     //    Height of armor $z$;
     //    Orientation of armor (obtain from armor orientation) $\theta$;
     SX z;
