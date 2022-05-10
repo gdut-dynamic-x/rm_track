@@ -28,7 +28,7 @@ void EkfBase::predict(const DM& u, double dt)
   // Predicted state estimate
   x_ = f_(DMDict({ { "x", x_ }, { "u", u }, { "dt", dt } })).at("x_next");
   // Predicted covariance estimate
-  P_ = mtimes(f, mtimes(P_, f.T())) + dt * Q_;
+  p_ = mtimes(f, mtimes(p_, f.T())) + dt * q_;
 }
 
 void EkfBase::update(const DM& z, const DM& u, double dt)
@@ -38,26 +38,26 @@ void EkfBase::update(const DM& z, const DM& u, double dt)
   // Innovation or measurement residual
   DM y = z - g_(DMDict({ { "x", x_ }, { "u", u } })).at("z");
   // Innovation(or residual) covariance
-  DM s = mtimes(h, mtimes(P_, h.T())) + R_ / dt;
+  DM s = mtimes(h, mtimes(p_, h.T())) + r_ / dt;
   // Near-optimal Kalman gain TODO(qiayuan): pseudo inverse?
-  DM k = mtimes(P_, mtimes(transpose(h), inv(s)));
+  DM k = mtimes(p_, mtimes(transpose(h), inv(s)));
   // Updated state estimate
   x_ += mtimes(k, y);
   // Updated covariance estimate
-  P_ -= mtimes(mtimes(k, h), P_);
+  p_ -= mtimes(mtimes(k, h), p_);
 }
 
 void EkfBase::setInitialGuess(const DM& x0, const DM& p0)
 {
   x_ = x0;
-  P_ = p0;
+  p_ = p0;
   inited_ = true;
 }
 
 void EkfBase::setNoise(const DM& Q, const DM& R)
 {
-  Q_ = Q;
-  R_ = R;
+  q_ = Q;
+  r_ = R;
 }
 DM EkfBase::getState() const
 {
@@ -65,7 +65,7 @@ DM EkfBase::getState() const
 }
 DM EkfBase::getCovariance() const
 {
-  return Q_;
+  return q_;
 }
 void EkfBase::getQR(const ros::NodeHandle& nh)
 {
@@ -76,27 +76,20 @@ void EkfBase::getQR(const ros::NodeHandle& nh)
 DM EkfBase::getMatrix(const ros::NodeHandle& nh, const std::string& name, int dimension)
 {
   XmlRpc::XmlRpcValue matrix;
-  DM m(dimension, dimension);
+  DM m = DM::zeros(dimension, dimension);
   nh.getParam(name, matrix);
   ROS_ASSERT(matrix.getType() == XmlRpc::XmlRpcValue::TypeArray);
   ROS_ASSERT(matrix.size() == dimension);
   for (int i = 0; i < dimension; ++i)
   {
-    ROS_ASSERT(matrix[i].getType() == XmlRpc::XmlRpcValue::TypeArray);
-    ROS_ASSERT(matrix[i].size() == dimension);
-    for (int j = 0; j < dimension; ++j)
-    {
-      ROS_ASSERT(matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeDouble ||
-                 matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeInt);
-      if (matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeDouble)
-        m(i, j) = static_cast<double>(matrix[i][j]);
-      if (matrix[i][j].getType() == XmlRpc::XmlRpcValue::TypeInt)
-        m(i, j) = static_cast<int>(matrix[i][j]);
-    }
+    ROS_ASSERT(matrix[i].getType() == XmlRpc::XmlRpcValue::TypeDouble ||
+               matrix[i].getType() == XmlRpc::XmlRpcValue::TypeInt);
+    if (matrix[i].getType() == XmlRpc::XmlRpcValue::TypeDouble)
+      m(i, i) = static_cast<double>(matrix[i]);
+    if (matrix[i].getType() == XmlRpc::XmlRpcValue::TypeInt)
+      m(i, i) = static_cast<int>(matrix[i]);
   }
   return m;
 }
 
-DM EkfBase::Q_;
-DM EkfBase::R_;
 }  // namespace rm_track
