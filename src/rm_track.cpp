@@ -43,7 +43,7 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   else
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
-  predictor_.getQR(nh);
+  predictor_.init(nh);
   apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, update_flag_, "/tag_detections");
   rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, update_flag_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
@@ -89,6 +89,7 @@ void RmTrack::run()
   {
     auto it = buffer_.id2caches_.begin()->second.storage_que_.begin();
     double dt = (it->stamp_ - (it + 1)->stamp_).toSec();
+    predictor_.updateQR();
     predictor_.predict(dt);
     double z[3] = { target_armor_.transform.getOrigin().x(), target_armor_.transform.getOrigin().y(),
                     target_armor_.transform.getOrigin().z() };

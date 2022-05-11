@@ -19,6 +19,7 @@ using namespace casadi;
 class EkfBase
 {
 public:
+  virtual void init(ros::NodeHandle& nh) = 0;
   void predict(const DM& u, double dt);
   void update(const DM& y, const DM& u, double dt);
   void setInitialGuess(const DM& x0, const DM& p0);
@@ -38,10 +39,9 @@ protected:
   Function jac_g_;  // jacobian of measurement model
 
   DM x_;  // current estimate of the state vector
-  DM P_;  // current estimate of the covariance matrix
-
-  static DM R_;
-  static DM Q_;
+  DM p_;  // current estimate of the covariance matrix
+  DM r_;
+  DM q_;
 };
 
 }  // namespace rm_track

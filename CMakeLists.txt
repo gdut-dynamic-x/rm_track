@@ -13,7 +13,12 @@ find_package(catkin REQUIRED
 
         tf2_geometry_msgs
         apriltag_ros
+        dynamic_reconfigure
         )
+
+generate_dynamic_reconfigure_options(
+        cfg/Ekf.cfg
+)
 
 catkin_package(
         INCLUDE_DIRS
@@ -27,6 +32,7 @@ catkin_package(
 
         tf2_geometry_msgs
         apriltag_ros
+        dynamic_reconfigure
 )
 
 include_directories(
@@ -41,6 +47,7 @@ add_executable(${PROJECT_NAME}
         src/logic_filter.cpp
         src/logic_selector.cpp
         src/ekf/ekf_base.cpp
+        src/ekf/linear_kf.cpp
         src/rm_track.cpp
         )
 
