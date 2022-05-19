@@ -111,10 +111,10 @@ void RmTrack::run()
   predictor_.getState(x);
   rm_msgs::TrackCmd track_cmd;
   track_cmd.header.frame_id = "map";
-  track_cmd.header.stamp = target_armor_.stamp;
-  track_cmd.target_pos.x = x[0];
-  track_cmd.target_pos.y = x[2];
-  track_cmd.target_pos.z = x[4];
+  track_cmd.header.stamp = ros::Time::now();
+  track_cmd.target_pos.x = x[0] + x[1] * (ros::Time::now() - target_armor_.stamp).toSec();
+  track_cmd.target_pos.y = x[2] + x[3] * (ros::Time::now() - target_armor_.stamp).toSec();
+  track_cmd.target_pos.z = x[4] + x[5] * (ros::Time::now() - target_armor_.stamp).toSec();
   track_cmd.target_vel.x = x[1];
   track_cmd.target_vel.y = x[3];
   track_cmd.target_vel.z = x[5];

@@ -93,7 +93,11 @@ public:
 private:
   void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
+    if (msg->detections.empty())
+      return;
     update_flag_ = true;
+    if ((msg->header.stamp - ros::Time::now()).toSec() > 0)
+      ROS_ERROR("Future data!");
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
