@@ -47,8 +47,6 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, update_flag_, "/tag_detections");
   rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, update_flag_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
-  ros::NodeHandle root_nh;
-  track_cmd_pub_ = root_nh.advertise<rm_msgs::TrackCmd>("/track_command", 10);
 }
 
 void RmTrack::run()
@@ -95,31 +93,21 @@ void RmTrack::run()
                     target_armor_.transform.getOrigin().z() };
     predictor_.update(z, dt);
   }
-  rm_msgs::TrackData track_data;
-  track_data.stamp = target_armor_.stamp;
-  track_data.id = target_armor_.id;
-  track_data.camera2detection.x = target_armor_.transform.getOrigin().x();
-  track_data.camera2detection.y = target_armor_.transform.getOrigin().y();
-  track_data.camera2detection.z = target_armor_.transform.getOrigin().z();
-  track_data.detection_vel.x = 0.;
-  track_data.detection_vel.y = 0.;
-  track_data.detection_vel.z = 0.;
-
-  track_pub_.publish(track_data);
 
   double x[6];
   predictor_.getState(x);
-  rm_msgs::TrackCmd track_cmd;
-  track_cmd.header.frame_id = "map";
-  track_cmd.header.stamp = target_armor_.stamp;
-  track_cmd.target_pos.x = x[0];
-  track_cmd.target_pos.y = x[2];
-  track_cmd.target_pos.z = x[4];
-  track_cmd.target_vel.x = x[1];
-  track_cmd.target_vel.y = x[3];
-  track_cmd.target_vel.z = x[5];
+  rm_msgs::TrackData track_data;
+  track_data.header.frame_id = "map";
+  track_data.header.stamp = target_armor_.stamp;
+  track_data.id = target_armor_.id;
+  track_data.target_pos.x = x[0];
+  track_data.target_pos.y = x[2];
+  track_data.target_pos.z = x[4];
+  track_data.target_vel.x = x[1];
+  track_data.target_vel.y = x[3];
+  track_data.target_vel.z = x[5];
 
-  track_cmd_pub_.publish(track_cmd);
+  track_pub_.publish(track_data);
 }
 
 }  // namespace rm_track
