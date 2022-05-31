@@ -23,9 +23,9 @@ LinearKf::LinearKf()
 void LinearKf::init(ros::NodeHandle& nh)
 {
   getQR(nh);
-  for (int i = 0; i < 6; i++)
+  for (int i = 0; i < 3; i++)
   {
-    q_dynamic_[i] = double(q_(i, i));
+    q_dynamic_[i] = double(q_(2 * i, 2 * i));
   }
   for (int i = 0; i < 3; i++)
   {
@@ -44,29 +44,24 @@ void LinearKf::reset(double* x0)
   setInitialGuess(x, p);
 }
 
-void LinearKf::updateQR()
-{
-  for (int i = 0; i < 6; i++)
-  {
-    q_(i, i) = q_dynamic_[i];
-  }
-  for (int i = 0; i < 3; i++)
-  {
-    r_(i, i) = r_dynamic_[i];
-  }
-}
-
 void LinearKf::predict(double dt)
 {
   DM u(0);
+  DM gamma_k = DM::horzcat({ DM::vertcat({ 0.5 * dt * dt, 0, 0, 0, 0, 0 }), DM::vertcat({ 0, dt, 0, 0, 0, 0 }),
+                             DM::vertcat({ 0, 0, 0.5 * dt * dt, 0, 0, 0 }), DM::vertcat({ 0, 0, 0, dt, 0, 0 }),
+                             DM::vertcat({ 0, 0, 0, 0, 0.5 * dt * dt, 0 }), DM::vertcat({ 0, 0, 0, 0, 0, dt }) });
+  DM w = DM::horzcat({ DM::vertcat({ q_dynamic_[0], 0, 0, 0, 0, 0 }), DM::vertcat({ 0, q_dynamic_[0], 0, 0, 0, 0 }),
+                       DM::vertcat({ 0, 0, q_dynamic_[1], 0, 0, 0 }), DM::vertcat({ 0, 0, 0, q_dynamic_[1], 0, 0 }),
+                       DM::vertcat({ 0, 0, 0, 0, q_dynamic_[2], 0 }), DM::vertcat({ 0, 0, 0, 0, 0, q_dynamic_[2] }) });
+  q_ = mtimes(gamma_k, w);
   EkfBase::predict(u, dt);
 }
 
-void LinearKf::update(double* z, double dt)
+void LinearKf::update(double* z)
 {
   DM z_m = DM::vertcat({ z[0], z[1], z[2] });
   DM u(0);
-  EkfBase::update(z_m, u, dt);
+  EkfBase::update(z_m, u);
 }
 
 void LinearKf::getState(double* x) const
@@ -80,7 +75,7 @@ void LinearKf::getState(double* x) const
   x[5] = static_cast<double>(x_m(5, 0));
 }
 
-double LinearKf::q_dynamic_[6];
+double LinearKf::q_dynamic_[3];
 double LinearKf::r_dynamic_[3];
 dynamic_reconfigure::Server<rm_track::EKfConfig>* LinearKf::reconf_server_;
 }  // namespace rm_track

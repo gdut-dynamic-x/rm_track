@@ -24,6 +24,7 @@ private:
   std::vector<LogicSelectorBase> logic_selectors_;
   LinearKf predictor_;
   bool update_flag_ = false;
+  ros::Time last_predict_time_;
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
   ros::Publisher track_pub_;

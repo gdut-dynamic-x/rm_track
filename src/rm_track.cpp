@@ -53,10 +53,6 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
 void RmTrack::run()
 {
-  if (!update_flag_)
-    return;
-  else
-    update_flag_ = false;
   Buffer buffer = buffer_;
   buffer.eraseUselessData();
   for (auto filter : logic_filters_)
@@ -77,23 +73,34 @@ void RmTrack::run()
         target_armor_ = selector.output();
         break;
       }
-
   // TODO ekf
   if (!predictor_.inited_)
   {
     double x[6] = { target_armor_.transform.getOrigin().x(), 0, target_armor_.transform.getOrigin().y(), 0,
                     target_armor_.transform.getOrigin().z(), 0 };
     predictor_.reset(x);
+    last_predict_time_ = target_armor_.stamp;
   }
   else
   {
-    auto it = buffer_.id2caches_.begin()->second.storage_que_.begin();
-    double dt = (it->stamp_ - (it + 1)->stamp_).toSec();
-    predictor_.updateQR();
-    predictor_.predict(dt);
-    double z[3] = { target_armor_.transform.getOrigin().x(), target_armor_.transform.getOrigin().y(),
-                    target_armor_.transform.getOrigin().z() };
-    predictor_.update(z, dt);
+    if (!update_flag_)
+    {
+      ros::Time now = ros::Time::now();
+      double dt = (now - last_predict_time_).toSec();
+      predictor_.predict(dt);
+      last_predict_time_ = now;
+    }
+    else
+    {
+      double dt = (target_armor_.stamp - last_predict_time_).toSec();
+      predictor_.predict(dt);
+      double z[3] = { target_armor_.transform.getOrigin().x(), target_armor_.transform.getOrigin().y(),
+                      target_armor_.transform.getOrigin().z() };
+      predictor_.update(z);
+      ros::Time now = ros::Time::now();
+      predictor_.predict((now - target_armor_.stamp).toSec());
+      last_predict_time_ = now;
+    }
   }
   rm_msgs::TrackData track_data;
   track_data.stamp = target_armor_.stamp;
@@ -110,11 +117,11 @@ void RmTrack::run()
   double x[6];
   predictor_.getState(x);
   rm_msgs::TrackCmd track_cmd;
-  track_cmd.header.frame_id = "map";
+  track_cmd.header.frame_id = "odom";
   track_cmd.header.stamp = ros::Time::now();
-  track_cmd.target_pos.x = x[0] + x[1] * (ros::Time::now() - target_armor_.stamp).toSec();
-  track_cmd.target_pos.y = x[2] + x[3] * (ros::Time::now() - target_armor_.stamp).toSec();
-  track_cmd.target_pos.z = x[4] + x[5] * (ros::Time::now() - target_armor_.stamp).toSec();
+  track_cmd.target_pos.x = x[0];
+  track_cmd.target_pos.y = x[2];
+  track_cmd.target_pos.z = x[4];
   track_cmd.target_vel.x = x[1];
   track_cmd.target_vel.y = x[3];
   track_cmd.target_vel.z = x[5];

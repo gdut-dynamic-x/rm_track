@@ -16,9 +16,8 @@ public:
   LinearKf();
   void init(ros::NodeHandle& nh) override;
   void reset(double x0[6]);
-  void updateQR();
   void predict(double dt);
-  void update(double z[3], double dt);
+  void update(double z[3]);
   void getState(double x[6]) const;
 
 private:
