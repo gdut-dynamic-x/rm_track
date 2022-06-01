@@ -105,7 +105,7 @@ void RmTrack::run()
   predictor_.getState(x);
   rm_msgs::TrackData track_data;
   track_data.header.frame_id = "odom";
-  track_data.header.stamp = target_armor_.stamp;
+  track_data.header.stamp = ros::Time::now();
   track_data.id = target_armor_.id;
   track_data.target_pos.x = x[0];
   track_data.target_pos.y = x[2];
