@@ -7,7 +7,7 @@
 #include "logic_filter.h"
 #include "logic_selector.h"
 #include "ekf/linear_kf.h"
-#include <rm_msgs/TrackCmd.h>
+#include "ekf/armor_ekf.h"
 
 namespace rm_track
 {
@@ -28,7 +28,6 @@ private:
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
   ros::Publisher track_pub_;
-  ros::Publisher track_cmd_pub_;
 };
 
 }  // namespace rm_track
