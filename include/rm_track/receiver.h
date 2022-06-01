@@ -20,7 +20,10 @@ class ReceiverBase
 {
 public:
   ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, bool& update_flag, std::string topic)
-    : buffer_(buffer), update_flag_(update_flag), tf_listener(tf_buffer_), tf_filter_(msg_sub_, tf_buffer_, "map", 10, 0)
+    : buffer_(buffer)
+    , update_flag_(update_flag)
+    , tf_listener(tf_buffer_)
+    , tf_filter_(msg_sub_, tf_buffer_, "odom", 10, 0)
   {
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
@@ -72,7 +75,8 @@ public:
 private:
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
-    update_flag_ = true;
+    if (!msg->detections.empty())
+      update_flag_ = true;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
@@ -93,7 +97,10 @@ public:
 private:
   void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
-    update_flag_ = true;
+    if (!msg->detections.empty())
+      update_flag_ = true;
+    if ((msg->header.stamp - ros::Time::now()).toSec() > 0)
+      ROS_ERROR("Future data!");
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;

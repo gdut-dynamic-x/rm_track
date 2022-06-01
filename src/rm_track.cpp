@@ -51,10 +51,6 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
 void RmTrack::run()
 {
-  if (!update_flag_)
-    return;
-  else
-    update_flag_ = false;
   Buffer buffer = buffer_;
   buffer.eraseUselessData();
   for (auto filter : logic_filters_)
@@ -75,29 +71,40 @@ void RmTrack::run()
         target_armor_ = selector.output();
         break;
       }
-
   // TODO ekf
   if (!predictor_.inited_)
   {
     double x[6] = { target_armor_.transform.getOrigin().x(), 0, target_armor_.transform.getOrigin().y(), 0,
                     target_armor_.transform.getOrigin().z(), 0 };
     predictor_.reset(x);
+    last_predict_time_ = target_armor_.stamp;
   }
   else
   {
-    auto it = buffer_.id2caches_.begin()->second.storage_que_.begin();
-    double dt = (it->stamp_ - (it + 1)->stamp_).toSec();
-    predictor_.updateQR();
-    predictor_.predict(dt);
-    double z[3] = { target_armor_.transform.getOrigin().x(), target_armor_.transform.getOrigin().y(),
-                    target_armor_.transform.getOrigin().z() };
-    predictor_.update(z, dt);
+    if (!update_flag_)
+    {
+      ros::Time now = ros::Time::now();
+      double dt = (now - last_predict_time_).toSec();
+      predictor_.predict(dt);
+      last_predict_time_ = now;
+    }
+    else
+    {
+      double dt = (target_armor_.stamp - last_predict_time_).toSec();
+      predictor_.predict(dt);
+      double z[3] = { target_armor_.transform.getOrigin().x(), target_armor_.transform.getOrigin().y(),
+                      target_armor_.transform.getOrigin().z() };
+      predictor_.update(z);
+      ros::Time now = ros::Time::now();
+      predictor_.predict((now - target_armor_.stamp).toSec());
+      last_predict_time_ = now;
+    }
   }
 
   double x[6];
   predictor_.getState(x);
   rm_msgs::TrackData track_data;
-  track_data.header.frame_id = "map";
+  track_data.header.frame_id = "odom";
   track_data.header.stamp = target_armor_.stamp;
   track_data.id = target_armor_.id;
   track_data.target_pos.x = x[0];

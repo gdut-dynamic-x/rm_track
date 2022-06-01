@@ -28,17 +28,17 @@ void EkfBase::predict(const DM& u, double dt)
   // Predicted state estimate
   x_ = f_(DMDict({ { "x", x_ }, { "u", u }, { "dt", dt } })).at("x_next");
   // Predicted covariance estimate
-  p_ = mtimes(f, mtimes(p_, f.T())) + dt * q_;
+  p_ = mtimes(f, mtimes(p_, f.T())) + q_;
 }
 
-void EkfBase::update(const DM& z, const DM& u, double dt)
+void EkfBase::update(const DM& z, const DM& u)
 {
   // Get observation matrices H
   DM h = jac_g_(DMDict({ { "x", x_ }, { "u", u } })).at("jac");
   // Innovation or measurement residual
   DM y = z - g_(DMDict({ { "x", x_ }, { "u", u } })).at("z");
   // Innovation(or residual) covariance
-  DM s = mtimes(h, mtimes(p_, h.T())) + r_ / dt;
+  DM s = mtimes(h, mtimes(p_, h.T())) + r_;
   // Near-optimal Kalman gain TODO(qiayuan): pseudo inverse?
   DM k = mtimes(p_, mtimes(transpose(h), inv(s)));
   // Updated state estimate
