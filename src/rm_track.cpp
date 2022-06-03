@@ -47,79 +47,76 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, update_flag_, "/tag_detections");
   rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, update_flag_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
-  ros::NodeHandle root_nh;
-  track_cmd_pub_ = root_nh.advertise<rm_msgs::TrackCmd>("/track_command", 10);
 }
 
 void RmTrack::run()
 {
-  if (!update_flag_)
-    return;
-  else
-    update_flag_ = false;
   Buffer buffer = buffer_;
   buffer.eraseUselessData();
   for (auto filter : logic_filters_)
     filter.input(buffer);
 
-  if (buffer.id2caches_.empty())
-    return;
-
-  if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.size() == 1)
-    target_armor_ =
-        Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-               .id = buffer.id2caches_.begin()->first,
-               .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-  else
-    for (auto selector : logic_selectors_)
-      if (selector.input(buffer))
+  double x[6]{};
+  Armor target_armor{};
+  if (!buffer.id2caches_.empty())
+  {
+    if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.size() == 1)
+      target_armor =
+          Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
+                 .id = buffer.id2caches_.begin()->first,
+                 .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
+    else
+      for (auto selector : logic_selectors_)
+        if (selector.input(buffer))
+        {
+          target_armor = selector.output();
+          break;
+        }
+    // TODO ekf
+    if (!predictor_.inited_)
+    {
+      double x[6] = { target_armor.transform.getOrigin().x(), 0, target_armor.transform.getOrigin().y(), 0,
+                      target_armor.transform.getOrigin().z(), 0 };
+      predictor_.reset(x);
+      last_predict_time_ = target_armor.stamp;
+    }
+    else
+    {
+      if (!update_flag_)
       {
-        target_armor_ = selector.output();
-        break;
+        ros::Time now = ros::Time::now();
+        double dt = (now - last_predict_time_).toSec();
+        predictor_.predict(dt);
+        last_predict_time_ = now;
       }
+      else
+      {
+        double dt = (target_armor.stamp - last_predict_time_).toSec();
+        predictor_.predict(dt);
+        double z[3] = { target_armor.transform.getOrigin().x(), target_armor.transform.getOrigin().y(),
+                        target_armor.transform.getOrigin().z() };
+        predictor_.update(z);
+        ros::Time now = ros::Time::now();
+        predictor_.predict((now - target_armor.stamp).toSec());
+        last_predict_time_ = now;
+      }
+    }
 
-  // TODO ekf
-  if (!predictor_.inited_)
-  {
-    double x[6] = { target_armor_.transform.getOrigin().x(), 0, target_armor_.transform.getOrigin().y(), 0,
-                    target_armor_.transform.getOrigin().z(), 0 };
-    predictor_.reset(x);
+    predictor_.getState(x);
   }
-  else
-  {
-    auto it = buffer_.id2caches_.begin()->second.storage_que_.begin();
-    double dt = (it->stamp_ - (it + 1)->stamp_).toSec();
-    predictor_.updateQR();
-    predictor_.predict(dt);
-    double z[3] = { target_armor_.transform.getOrigin().x(), target_armor_.transform.getOrigin().y(),
-                    target_armor_.transform.getOrigin().z() };
-    predictor_.update(z, dt);
-  }
+
   rm_msgs::TrackData track_data;
-  track_data.stamp = target_armor_.stamp;
-  track_data.id = target_armor_.id;
-  track_data.camera2detection.x = target_armor_.transform.getOrigin().x();
-  track_data.camera2detection.y = target_armor_.transform.getOrigin().y();
-  track_data.camera2detection.z = target_armor_.transform.getOrigin().z();
-  track_data.detection_vel.x = 0.;
-  track_data.detection_vel.y = 0.;
-  track_data.detection_vel.z = 0.;
+  track_data.header.frame_id = "odom";
+  track_data.header.stamp = ros::Time::now();
+  track_data.id = target_armor.id;
+  track_data.target_pos.x = x[0];
+  track_data.target_pos.y = x[2];
+  track_data.target_pos.z = x[4];
+  track_data.target_vel.x = x[1];
+  track_data.target_vel.y = x[3];
+  track_data.target_vel.z = x[5];
 
   track_pub_.publish(track_data);
-
-  double x[6];
-  predictor_.getState(x);
-  rm_msgs::TrackCmd track_cmd;
-  track_cmd.header.frame_id = "map";
-  track_cmd.header.stamp = target_armor_.stamp;
-  track_cmd.target_pos.x = x[0];
-  track_cmd.target_pos.y = x[2];
-  track_cmd.target_pos.z = x[4];
-  track_cmd.target_vel.x = x[1];
-  track_cmd.target_vel.y = x[3];
-  track_cmd.target_vel.z = x[5];
-
-  track_cmd_pub_.publish(track_cmd);
 }
 
 }  // namespace rm_track

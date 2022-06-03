@@ -20,7 +20,10 @@ class ReceiverBase
 {
 public:
   ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, bool& update_flag, std::string topic)
-    : buffer_(buffer), update_flag_(update_flag), tf_listener(tf_buffer_), tf_filter_(msg_sub_, tf_buffer_, "map", 10, 0)
+    : buffer_(buffer)
+    , update_flag_(update_flag)
+    , tf_listener(tf_buffer_)
+    , tf_filter_(msg_sub_, tf_buffer_, "odom", 10, 0)
   {
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
@@ -35,7 +38,7 @@ protected:
     geometry_msgs::PoseStamped pose_out;
     try
     {
-      tf_buffer_.transform(pose, pose_out, "map");
+      tf_buffer_.transform(pose, pose_out, "odom");
     }
     catch (tf2::TransformException& ex)
     {
@@ -72,7 +75,8 @@ public:
 private:
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
-    update_flag_ = true;
+    if (!msg->detections.empty())
+      update_flag_ = true;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
@@ -93,16 +97,17 @@ public:
 private:
   void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
-    update_flag_ = true;
+    if (!msg->detections.empty())
+      update_flag_ = true;
+    if ((msg->header.stamp - ros::Time::now()).toSec() > 0)
+      ROS_ERROR("Future data!");
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header.frame_id = msg->header.frame_id;
       pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose.pose.pose;
-      // Suppose not tag bundle and take tens digit as id, since apriltag_ros does not support tags with the same id
-      // appear in one image
-      insertData(detection.id[0] % 10, pose_stamped, 1.0);
+      insertData(detection.id[0], pose_stamped, 1.0);
     }
     updateBuffer(msg->header.stamp);
   }
