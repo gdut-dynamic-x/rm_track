@@ -75,9 +75,9 @@ void RmTrack::run()
     // TODO ekf
     if (!predictor_.inited_)
     {
-      double x[6] = { target_armor.transform.getOrigin().x(), 0, target_armor.transform.getOrigin().y(), 0,
-                      target_armor.transform.getOrigin().z(), 0 };
-      predictor_.reset(x);
+      double x_init[6] = { target_armor.transform.getOrigin().x(), 0, target_armor.transform.getOrigin().y(), 0,
+                           target_armor.transform.getOrigin().z(), 0 };
+      predictor_.reset(x_init);
       last_predict_time_ = target_armor.stamp;
     }
     else
@@ -91,6 +91,7 @@ void RmTrack::run()
       }
       else
       {
+        update_flag_ = false;
         double dt = (target_armor.stamp - last_predict_time_).toSec();
         predictor_.predict(dt);
         double z[3] = { target_armor.transform.getOrigin().x(), target_armor.transform.getOrigin().y(),
