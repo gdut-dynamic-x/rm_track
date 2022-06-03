@@ -38,7 +38,7 @@ protected:
     geometry_msgs::PoseStamped pose_out;
     try
     {
-      tf_buffer_.transform(pose, pose_out, "map");
+      tf_buffer_.transform(pose, pose_out, "odom");
     }
     catch (tf2::TransformException& ex)
     {
