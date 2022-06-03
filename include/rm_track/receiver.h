@@ -107,9 +107,7 @@ private:
       pose_stamped.header.frame_id = msg->header.frame_id;
       pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose.pose.pose;
-      // Suppose not tag bundle and take tens digit as id, since apriltag_ros does not support tags with the same id
-      // appear in one image
-      insertData(detection.id[0] % 10, pose_stamped, 1.0);
+      insertData(detection.id[0], pose_stamped, 1.0);
     }
     updateBuffer(msg->header.stamp);
   }

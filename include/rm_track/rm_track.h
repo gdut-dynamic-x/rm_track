@@ -18,7 +18,6 @@ public:
   void run();
 
 private:
-  Armor target_armor_;
   Buffer buffer_;
   std::vector<LogicFilterBase> logic_filters_;
   std::vector<LogicSelectorBase> logic_selectors_;
