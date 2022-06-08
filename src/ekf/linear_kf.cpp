@@ -2,6 +2,7 @@
 // Created by yezi on 2022/5/10.
 //
 
+#include <geometry_msgs/Point.h>
 #include "rm_track/ekf/linear_kf.h"
 
 namespace rm_track
@@ -23,6 +24,10 @@ LinearKf::LinearKf()
 void LinearKf::init(ros::NodeHandle& nh)
 {
   getQR(nh);
+  nh.param("debug", is_debug_, false);
+
+  if (is_debug_)
+    measure_pub_ = nh.advertise<geometry_msgs::Point>("measure", 1);
   for (int i = 0; i < 3; i++)
   {
     q_dynamic_[i] = double(q_(2 * i, 2 * i));
@@ -62,6 +67,14 @@ void LinearKf::update(double* z)
   DM z_m = DM::vertcat({ z[0], z[1], z[2] });
   DM u(0);
   EkfBase::update(z_m, u);
+  if (is_debug_)
+  {
+    geometry_msgs::Point measure_data;
+    measure_data.x = z[0];
+    measure_data.y = z[1];
+    measure_data.z = z[2];
+    measure_pub_.publish(measure_data);
+  }
 }
 
 void LinearKf::getState(double* x) const

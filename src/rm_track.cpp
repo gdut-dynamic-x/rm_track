@@ -43,7 +43,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   else
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
-  predictor_.init(nh);
+  ros::NodeHandle kf_nh = ros::NodeHandle(nh, "linear_kf");
+  predictor_.init(kf_nh);
   apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, update_flag_, "/tag_detections");
   rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, update_flag_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
@@ -58,6 +59,7 @@ void RmTrack::run()
 
   double x[6]{};
   Armor target_armor{};
+  ros::Time now = ros::Time::now();
   if (!buffer.id2caches_.empty())
   {
     if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.size() == 1)
@@ -84,7 +86,7 @@ void RmTrack::run()
     {
       if (!update_flag_)
       {
-        ros::Time now = ros::Time::now();
+        now = ros::Time::now();
         double dt = (now - last_predict_time_).toSec();
         predictor_.predict(dt);
         last_predict_time_ = now;
@@ -97,7 +99,7 @@ void RmTrack::run()
         double z[3] = { target_armor.transform.getOrigin().x(), target_armor.transform.getOrigin().y(),
                         target_armor.transform.getOrigin().z() };
         predictor_.update(z);
-        ros::Time now = ros::Time::now();
+        now = ros::Time::now();
         predictor_.predict((now - target_armor.stamp).toSec());
         last_predict_time_ = now;
       }
@@ -108,7 +110,7 @@ void RmTrack::run()
 
   rm_msgs::TrackData track_data;
   track_data.header.frame_id = "odom";
-  track_data.header.stamp = ros::Time::now();
+  track_data.header.stamp = now;
   track_data.id = target_armor.id;
   track_data.target_pos.x = x[0];
   track_data.target_pos.y = x[2];
