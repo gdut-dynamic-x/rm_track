@@ -56,4 +56,6 @@ target_link_libraries(${PROJECT_NAME}
         casadi
         )
 
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
+
 roslint_cpp()

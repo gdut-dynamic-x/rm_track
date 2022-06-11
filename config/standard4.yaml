@@ -14,5 +14,7 @@ rm_track:
     - same_id_armor
     - static_armor
     - closest_armor
-  Q: [ 1, 100, 1, 100, 1, 100 ]
-  R: [ 0., 0., 0. ]
+  linear_kf:
+    Q: [ 1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0 ]
+    R: [ 1, 1, 1 ]
+    debug: true
