@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(rm_track)
 
+find_package(casadi REQUIRED)
+
 find_package(catkin REQUIRED
         COMPONENTS
         roscpp
@@ -11,7 +13,12 @@ find_package(catkin REQUIRED
 
         tf2_geometry_msgs
         apriltag_ros
+        dynamic_reconfigure
         )
+
+generate_dynamic_reconfigure_options(
+        cfg/Ekf.cfg
+)
 
 catkin_package(
         INCLUDE_DIRS
@@ -25,7 +32,7 @@ catkin_package(
 
         tf2_geometry_msgs
         apriltag_ros
-        LIBRARIES ${PROJECT_NAME}
+        dynamic_reconfigure
 )
 
 include_directories(
@@ -39,11 +46,16 @@ add_executable(${PROJECT_NAME}
         src/time_cache.cpp
         src/logic_filter.cpp
         src/logic_selector.cpp
+        src/ekf/ekf_base.cpp
+        src/ekf/linear_kf.cpp
         src/rm_track.cpp
         )
 
 target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
+        casadi
         )
+
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 roslint_cpp()

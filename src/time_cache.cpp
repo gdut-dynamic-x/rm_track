@@ -56,9 +56,9 @@ void TimeCache::updateState(ros::Time latest_time)
     }
     else if ((storage_it + 1) != storage_que_.end() && storage_it->stamp_ - (storage_it + 1)->stamp_ > max_lost_time_)
     {
-      for (auto target : storage_it->targets_)
+      for (auto& target : storage_it->targets_)
         target.state = Target::APPEAR;
-      for (auto target : (storage_it + 1)->targets_)
+      for (auto& target : (storage_it + 1)->targets_)
         target.state = Target::NOT_EXIST;
     }
     else
@@ -136,10 +136,10 @@ void TimeCache::updateState(ros::Time latest_time)
   else if (storage_it->stamp_ < latest_time)
   {
     if (latest_time - storage_it->stamp_ <= max_lost_time_)
-      for (auto target : storage_it->targets_)
+      for (auto& target : storage_it->targets_)
         target.state = target.state == Target::APPEAR ? Target::NOT_EXIST : Target::DISAPPEAR;
     else
-      for (auto target : storage_it->targets_)
+      for (auto& target : storage_it->targets_)
         target.state = Target::NOT_EXIST;
   }
   else

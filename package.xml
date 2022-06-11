@@ -18,5 +18,6 @@
 
     <depend>tf2_geometry_msgs</depend>
     <depend>apriltag_ros</depend>
+    <depend>dynamic_reconfigure</depend>
 
 </package>
