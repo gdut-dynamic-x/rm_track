@@ -9,14 +9,15 @@ namespace rm_track
 {
 RmTrack::RmTrack(ros::NodeHandle& nh)
 {
+  tf_buffer_ = new tf2_ros::Buffer(ros::Duration(10));
   XmlRpc::XmlRpcValue filters;
   if (nh.getParam("filters", filters))
     for (int i = 0; i < filters.size(); ++i)
     {
       if (filters[i]["type"] == "height_filter")
-        logic_filters_.push_back(HeightFilter(filters[i]));
+        logic_filters_.push_back(HeightFilter(filters[i], tf_buffer_));
       else if (filters[i]["type"] == "distance_filter")
-        logic_filters_.push_back(DistanceFilter(filters[i]));
+        logic_filters_.push_back(DistanceFilter(filters[i], tf_buffer_));
       else if (filters[i]["type"] == "confidence_filter")
         logic_filters_.push_back(ConfidenceFilter(filters[i]));
       else
@@ -45,8 +46,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
   ros::NodeHandle kf_nh = ros::NodeHandle(nh, "linear_kf");
   predictor_.init(kf_nh);
-  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, update_flag_, "/tag_detections");
-  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, update_flag_, "/detection");
+  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, tf_buffer_, update_flag_, "/tag_detections");
+  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, tf_buffer_, update_flag_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
 }
 
