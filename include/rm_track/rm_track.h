@@ -6,7 +6,8 @@
 #include "receiver.h"
 #include "logic_filter.h"
 #include "logic_selector.h"
-#include <rm_msgs/TrackCmd.h>
+#include "ekf/linear_kf.h"
+#include "ekf/armor_ekf.h"
 
 namespace rm_track
 {
@@ -17,14 +18,15 @@ public:
   void run();
 
 private:
-  Armor target_armor_;
   Buffer buffer_;
   std::vector<LogicFilterBase> logic_filters_;
   std::vector<LogicSelectorBase> logic_selectors_;
+  LinearKf predictor_;
+  bool update_flag_ = false;
+  ros::Time last_predict_time_;
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
   ros::Publisher track_pub_;
-  ros::Publisher track_cmd_pub_;
 };
 
 }  // namespace rm_track
