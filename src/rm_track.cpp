@@ -15,11 +15,11 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     for (int i = 0; i < filters.size(); ++i)
     {
       if (filters[i]["type"] == "height_filter")
-        logic_filters_.push_back(HeightFilter(filters[i], tf_buffer_));
+        logic_filters_.push_back(new HeightFilter(filters[i], tf_buffer_));
       else if (filters[i]["type"] == "distance_filter")
-        logic_filters_.push_back(DistanceFilter(filters[i], tf_buffer_));
+        logic_filters_.push_back(new DistanceFilter(filters[i], tf_buffer_));
       else if (filters[i]["type"] == "confidence_filter")
-        logic_filters_.push_back(ConfidenceFilter(filters[i]));
+        logic_filters_.push_back(new ConfidenceFilter(filters[i]));
       else
         ROS_ERROR("Filter '%s' does not exist", filters[i].toXml().c_str());
     }
@@ -54,9 +54,9 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 void RmTrack::run()
 {
   Buffer buffer = buffer_;
+  for (auto& filter : logic_filters_)
+    filter->input(buffer);
   buffer.eraseUselessData();
-  for (auto filter : logic_filters_)
-    filter.input(buffer);
 
   double x[6]{};
   Armor target_armor{};

@@ -23,20 +23,26 @@ LogicFilterBase::LogicFilterBase(XmlRpc::XmlRpcValue rpc_value)
 HeightFilter::HeightFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer)
   : LogicFilterBase(rpc_value), tf_buffer_(tf_buffer)
 {
+  ROS_INFO("Height filter add.");
 }
 void HeightFilter::input(Buffer& buffer)
 {
   for (auto& cache : buffer.id2caches_)
   {
-    auto targets = cache.second.storage_que_.front().targets_;
-    for (auto it = targets.begin(); it != targets.end(); it++)
+    for (auto& storage : cache.second.storage_que_)
     {
-      tf2::Transform transform = it->transform;
-      geometry_msgs::Pose pose;
-      tf2::toMsg(transform, pose);
-      tf2::doTransform(pose, pose, tf_buffer_->lookupTransform("base_link", "odom", ros::Time(0)));
-      if (pose.position.z < basic_range_[0] || pose.position.z > basic_range_[1])
-        targets.erase(it);
+      auto& targets = storage.targets_;
+      auto target_it = targets.begin();
+      while (target_it != targets.end())
+      {
+        tf2::Transform odom2target = target_it->transform;
+        auto odom2base = tf_buffer_->lookupTransform("base_link", "odom", ros::Time(0));
+        if (std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) < basic_range_[0] ||
+            std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) > basic_range_[1])
+          target_it = targets.erase(target_it);
+        else
+          target_it++;
+      }
     }
   }
 }
@@ -44,23 +50,28 @@ void HeightFilter::input(Buffer& buffer)
 DistanceFilter::DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer)
   : LogicFilterBase(rpc_value), tf_buffer_(tf_buffer)
 {
+  ROS_INFO("Distance filter add.");
 }
 void DistanceFilter::input(Buffer& buffer)
 {
   for (auto& cache : buffer.id2caches_)
   {
-    auto targets = cache.second.storage_que_.front().targets_;
-    for (auto it = targets.begin(); it != targets.end(); it++)
+    for (auto& storage : cache.second.storage_que_)
     {
-      tf2::Transform transform = it->transform;
-      geometry_msgs::Pose pose;
-      tf2::toMsg(transform, pose);
-      tf2::doTransform(pose, pose, tf_buffer_->lookupTransform("base_link", "odom", ros::Time(0)));
-      tf2::fromMsg(pose, transform);
-      ROS_INFO_THROTTLE(3, "Distance: %f,lower_range: %f, upper_range: %f", transform.getOrigin().length(),
-                        basic_range_[0], basic_range_[1]);
-      if (transform.getOrigin().length() < basic_range_[0] || transform.getOrigin().length() > basic_range_[1])
-        targets.erase(it);
+      auto& targets = storage.targets_;
+      auto target_it = targets.begin();
+      while (target_it != targets.end())
+      {
+        tf2::Transform transform = target_it->transform;
+        geometry_msgs::Pose pose;
+        tf2::toMsg(transform, pose);
+        tf2::doTransform(pose, pose, tf_buffer_->lookupTransform("base_link", "odom", ros::Time(0)));
+        tf2::fromMsg(pose, transform);
+        if (transform.getOrigin().length() < basic_range_[0] || transform.getOrigin().length() > basic_range_[1])
+          target_it = targets.erase(target_it);
+        else
+          target_it++;
+      }
     }
   }
 }
