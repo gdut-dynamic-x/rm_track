@@ -36,7 +36,7 @@ void HeightFilter::input(Buffer& buffer)
       while (target_it != targets.end())
       {
         tf2::Transform odom2target = target_it->transform;
-        auto odom2base = tf_buffer_->lookupTransform("base_link", "odom", ros::Time(0));
+        auto odom2base = tf_buffer_->lookupTransform("base_link", "odom", storage.stamp_);
         if (std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) < basic_range_[0] ||
             std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) > basic_range_[1])
           target_it = targets.erase(target_it);
@@ -65,7 +65,7 @@ void DistanceFilter::input(Buffer& buffer)
         tf2::Transform transform = target_it->transform;
         geometry_msgs::Pose pose;
         tf2::toMsg(transform, pose);
-        tf2::doTransform(pose, pose, tf_buffer_->lookupTransform("base_link", "odom", ros::Time(0)));
+        tf2::doTransform(pose, pose, tf_buffer_->lookupTransform("base_link", "odom", storage.stamp_));
         tf2::fromMsg(pose, transform);
         if (transform.getOrigin().length() < basic_range_[0] || transform.getOrigin().length() > basic_range_[1])
           target_it = targets.erase(target_it);
