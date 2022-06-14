@@ -6,6 +6,7 @@
 
 #include "buffer.h"
 #include <ros/ros.h>
+#include <tf2_ros/buffer.h>
 
 namespace rm_track
 {
@@ -23,21 +24,27 @@ protected:
 class HeightFilter : public LogicFilterBase
 {
 public:
-  explicit HeightFilter(XmlRpc::XmlRpcValue rpc_value);
+  explicit HeightFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer);
   void input(Buffer& buffer) override;
+
+private:
+  tf2_ros::Buffer* tf_buffer_;
 };
 
 class DistanceFilter : public LogicFilterBase
 {
 public:
-  explicit DistanceFilter(XmlRpc::XmlRpcValue rpc_value);
+  explicit DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer);
   void input(Buffer& buffer) override;
+
+private:
+  tf2_ros::Buffer* tf_buffer_;
 };
 
 class ConfidenceFilter : public LogicFilterBase
 {
 public:
-  explicit ConfidenceFilter(XmlRpc::XmlRpcValue rpc_value);
+  explicit ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value);
   void input(Buffer& buffer) override;
 };
 

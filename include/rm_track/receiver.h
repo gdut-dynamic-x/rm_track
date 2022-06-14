@@ -19,11 +19,8 @@ template <class MsgType>
 class ReceiverBase
 {
 public:
-  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, bool& update_flag, std::string topic)
-    : buffer_(buffer)
-    , update_flag_(update_flag)
-    , tf_listener(tf_buffer_)
-    , tf_filter_(msg_sub_, tf_buffer_, "odom", 10, 0)
+  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, bool& update_flag, std::string topic)
+    : buffer_(buffer), tf_buffer_(tf_buffer), update_flag_(update_flag), tf_filter_(msg_sub_, *tf_buffer_, "odom", 10, 0)
   {
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
@@ -31,6 +28,7 @@ public:
 
 protected:
   std::unordered_map<int, DetectionStorage> id2storage_;
+  tf2_ros::Buffer* tf_buffer_;
   bool& update_flag_;
 
   void insertData(int id, const geometry_msgs::PoseStamped& pose, double confidence)
@@ -38,7 +36,7 @@ protected:
     geometry_msgs::PoseStamped pose_out;
     try
     {
-      tf_buffer_.transform(pose, pose_out, "odom");
+      tf_buffer_->transform(pose, pose_out, "odom");
     }
     catch (tf2::TransformException& ex)
     {
@@ -61,8 +59,6 @@ private:
   virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg) = 0;
 
   Buffer& buffer_;
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener;
   message_filters::Subscriber<MsgType> msg_sub_;
   tf2_ros::MessageFilter<MsgType> tf_filter_;
 };
@@ -70,9 +66,14 @@ private:
 class RmDetectionReceiver : public ReceiverBase<rm_msgs::TargetDetectionArray>
 {
 public:
-  using ReceiverBase<rm_msgs::TargetDetectionArray>::ReceiverBase;
+  RmDetectionReceiver(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, bool& update_flag,
+                      std::string topic)
+    : ReceiverBase(nh, buffer, tf_buffer, update_flag, topic), tf_listener(*tf_buffer_)
+  {
+  }
 
 private:
+  tf2_ros::TransformListener tf_listener;
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
     if (!msg->detections.empty())

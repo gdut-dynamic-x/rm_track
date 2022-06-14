@@ -19,10 +19,11 @@ public:
 
 private:
   Buffer buffer_;
-  std::vector<LogicFilterBase> logic_filters_;
+  std::vector<LogicFilterBase*> logic_filters_;
   std::vector<LogicSelectorBase> logic_selectors_;
   LinearKf predictor_;
   bool update_flag_ = false;
+  tf2_ros::Buffer* tf_buffer_;
   ros::Time last_predict_time_;
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
