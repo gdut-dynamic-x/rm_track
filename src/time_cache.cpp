@@ -36,12 +36,12 @@ bool TimeCache::insertData(DetectionStorage& data)
     storage_it++;
   }
   storage_que_.insert(storage_it, data);
-  pruneList();
   return true;
 }
 
 void TimeCache::updateState(ros::Time latest_time)
 {
+  pruneList(ros::Time::now());
   auto storage_it = storage_que_.begin();
 
   if (storage_it == storage_que_.end())
@@ -183,9 +183,9 @@ ros::Time TimeCache::getOldestTimestamp()
   return storage_que_.back().stamp_;
 }
 
-void TimeCache::pruneList()
+void TimeCache::pruneList(ros::Time lastest_time)
 {
-  while (!storage_que_.empty() && storage_que_.back().stamp_ + max_storage_time_ < storage_que_.begin()->stamp_)
+  while (!storage_que_.empty() && storage_que_.back().stamp_ + max_storage_time_ < lastest_time)
     storage_que_.pop_back();
 }
 

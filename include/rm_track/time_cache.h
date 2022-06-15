@@ -33,7 +33,7 @@ private:
   //  inline void interpolate(const DetectionStorage& one, const DetectionStorage& two, ros::Time time,
   //                          DetectionStorage& output){}
 
-  void pruneList();
+  void pruneList(ros::Time lastest_time);
 
   ros::Duration max_storage_time_;
   ros::Duration max_lost_time_;
