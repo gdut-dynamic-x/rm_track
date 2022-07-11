@@ -62,6 +62,18 @@ void LinearKf::predict(double dt)
   EkfBase::predict(u, dt);
 }
 
+void LinearKf::predict(double* x, double dt)
+{
+  DM u(0);
+  DM x_predict = f_(DMDict({ { "x", x_ }, { "u", u }, { "dt", dt } })).at("x_next");
+  x[0] = static_cast<double>(x_predict(0, 0));
+  x[1] = static_cast<double>(x_predict(1, 0));
+  x[2] = static_cast<double>(x_predict(2, 0));
+  x[3] = static_cast<double>(x_predict(3, 0));
+  x[4] = static_cast<double>(x_predict(4, 0));
+  x[5] = static_cast<double>(x_predict(5, 0));
+}
+
 void LinearKf::update(double* z)
 {
   DM z_m = DM::vertcat({ z[0], z[1], z[2] });

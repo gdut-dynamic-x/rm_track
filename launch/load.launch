@@ -5,7 +5,7 @@
 
     <remap from="/track_command" to="/controllers/gimbal_controller/track_command"/>
 
-    <rosparam file="$(find rm_track)/config/$(arg robot_type).yaml" command="load"/>
+    <rosparam file="$(find rm_config)/config/rm_track/$(arg robot_type).yaml" command="load"/>
 
     <node name="rm_track" pkg="rm_track" type="rm_track" respawn="false"/>
 

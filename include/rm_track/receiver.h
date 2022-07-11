@@ -76,8 +76,7 @@ private:
   tf2_ros::TransformListener tf_listener;
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
-    if (!msg->detections.empty())
-      update_flag_ = true;
+    update_flag_ = true;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
@@ -98,8 +97,7 @@ public:
 private:
   void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
-    if (!msg->detections.empty())
-      update_flag_ = true;
+    update_flag_ = true;
     if ((msg->header.stamp - ros::Time::now()).toSec() > 0)
       ROS_ERROR("Future data!");
     for (const auto& detection : msg->detections)
