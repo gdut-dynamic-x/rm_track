@@ -5,20 +5,25 @@
 
 #include "time_cache.h"
 #include <unordered_map>
+#include <ros/ros.h>
 
 namespace rm_track
 {
 class Buffer
 {
 public:
-  Buffer() = default;
+  Buffer(ros::NodeHandle& nh)
+  {
+    nh.param("max_storage_time", max_storage_time_, 5.0);
+    nh.param("max_lost_time", max_lost_time_, 0.1);
+  }
   void insertData(int id, DetectionStorage data)
   {
-    (id2caches_.find(id) == id2caches_.end() ? allocateCache(id) : id2caches_[id]).insertData(data);
+    (id2caches_.find(id) == id2caches_.end() ? allocateCache(id) : id2caches_.at(id)).insertData(data);
   }
   TimeCache& getTimeCache(int id)
   {
-    return id2caches_[id];
+    return id2caches_.at(id);
   }
   void updateState(ros::Time latest_time)
   {
@@ -41,10 +46,11 @@ public:
   std::unordered_map<int, TimeCache> id2caches_;
 
 private:
+  double max_storage_time_, max_lost_time_;
   TimeCache& allocateCache(int id)
   {
-    id2caches_.insert(std::make_pair(id, TimeCache()));
-    return id2caches_[id];
+    id2caches_.insert(std::make_pair(id, TimeCache(ros::Duration(max_storage_time_), ros::Duration(max_lost_time_))));
+    return id2caches_.at(id);
   }
 };
 }  // namespace rm_track

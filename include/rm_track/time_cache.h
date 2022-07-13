@@ -13,8 +13,7 @@ namespace rm_track
 class TimeCache
 {
 public:
-  explicit TimeCache(ros::Duration max_storage_time = ros::Duration(5.),
-                     ros::Duration max_lost_time = ros::Duration(0.5))
+  explicit TimeCache(ros::Duration max_storage_time, ros::Duration max_lost_time)
     : max_storage_time_(max_storage_time), max_lost_time_(max_lost_time){};
 
   bool getData(ros::Time time, DetectionStorage& data);

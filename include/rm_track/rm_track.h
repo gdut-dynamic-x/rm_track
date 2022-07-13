@@ -19,9 +19,9 @@ public:
   bool matchTarget(Buffer buffer, int id, double predict_z[3], double match_z[3]);
 
 private:
-  Buffer buffer_;
+  std::shared_ptr<Buffer> buffer_;
   std::vector<LogicFilterBase*> logic_filters_;
-  std::vector<LogicSelectorBase> logic_selectors_;
+  std::vector<LogicSelectorBase*> logic_selectors_;
   LinearKf predictor_;
   int track_target_id_ = 0;
   double max_match_distance_ = 0.2;

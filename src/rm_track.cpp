@@ -33,13 +33,19 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     for (int i = 0; i < selectors.size(); ++i)
     {
       if (selectors[i] == "last_armor")
-        logic_selectors_.push_back(LastArmorSelector());
+        logic_selectors_.push_back(new LastArmorSelector());
       else if (selectors[i] == "same_id_armor")
-        logic_selectors_.push_back(SameIDArmorSelector());
+        logic_selectors_.push_back(new SameIDArmorSelector());
       else if (selectors[i] == "static_armor")
-        logic_selectors_.push_back(StaticArmorSelector());
+        logic_selectors_.push_back(new StaticArmorSelector());
       else if (selectors[i] == "closest_armor")
-        logic_selectors_.push_back(ClosestArmorSelector());
+        logic_selectors_.push_back(new ClosestArmorSelector());
+      else if (selectors[i] == "random_armor")
+        logic_selectors_.push_back(new RandomArmorSelector());
+      else if (selectors[i] == "standard_armor")
+        logic_selectors_.push_back(new StandardArmorSelector());
+      else if (selectors[i] == "hero_armor")
+        logic_selectors_.push_back(new HeroArmorSelector());
       else
         ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
@@ -48,19 +54,21 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
   ros::NodeHandle kf_nh = ros::NodeHandle(nh, "linear_kf");
   predictor_.init(kf_nh);
-  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, buffer_, tf_buffer_, update_flag_, "/tag_detections");
-  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, buffer_, tf_buffer_, update_flag_, "/detection");
+  ros::NodeHandle buffer_nh = ros::NodeHandle(nh, "buffer");
+  buffer_ = std::make_shared<Buffer>(buffer_nh);
+  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, *buffer_, tf_buffer_, update_flag_, "/tag_detections");
+  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, *buffer_, tf_buffer_, update_flag_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
 }
 
 void RmTrack::run()
 {
-  Buffer buffer = buffer_;
+  Buffer buffer = *buffer_;
   for (auto& filter : logic_filters_)
     filter->input(buffer);
   buffer.eraseUselessData();
 
-  double x[6]{};
+  double x[6]{ 0, 0, 0, 0, 0, 0 };
   ros::Time now = ros::Time::now();
   if (!predictor_.inited_)
   {
@@ -69,18 +77,12 @@ void RmTrack::run()
       track_target_id_ = 0;
     else
     {
-      if (buffer.id2caches_.size() == 1 && buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.size() == 1)
-        target_armor =
-            Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-                   .id = buffer.id2caches_.begin()->first,
-                   .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-      else
-        for (auto selector : logic_selectors_)
-          if (selector.input(buffer))
-          {
-            target_armor = selector.output();
-            break;
-          }
+      for (auto& selector : logic_selectors_)
+        if (selector->input(buffer))
+        {
+          target_armor = selector->output();
+          break;
+        }
       track_target_id_ = target_armor.id;
       double x_init[6] = { target_armor.transform.getOrigin().x(), 0, target_armor.transform.getOrigin().y(), 0,
                            target_armor.transform.getOrigin().z(), 0 };
@@ -107,8 +109,9 @@ void RmTrack::run()
       }
       else
       {
-        double dt = (buffer.id2caches_[track_target_id_].storage_que_.front().stamp_ - last_predict_time_).toSec();
+        double dt = (buffer.id2caches_.at(track_target_id_).storage_que_.front().stamp_ - last_predict_time_).toSec();
         predictor_.predict(dt);
+        last_predict_time_ = buffer.id2caches_.at(track_target_id_).storage_que_.front().stamp_;
         double predict_x[6];
         double match_z[3];
         predictor_.getState(predict_x);
@@ -127,7 +130,6 @@ void RmTrack::run()
             track_target_id_ = 0;
           }
         }
-        last_predict_time_ = buffer.id2caches_[track_target_id_].storage_que_.front().stamp_;
         now = ros::Time::now();
         predictor_.predict(x, (now - last_predict_time_).toSec());
       }
@@ -150,9 +152,7 @@ void RmTrack::run()
 
 bool RmTrack::matchTarget(Buffer buffer, int id, double predict_z[3], double match_z[3])
 {
-  DetectionStorage detections = buffer.id2caches_[id].storage_que_.front();
-  if (detections.stamp_ <= last_predict_time_)
-    return false;
+  DetectionStorage detections = buffer.id2caches_.at(id).storage_que_.front();
   double min_position_diff = DBL_MAX;
   Target match_target;
   for (const auto& target : detections.targets_)

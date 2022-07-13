@@ -29,7 +29,17 @@ public:
   }
 
 protected:
-  Armor last_armor_, target_armor_;
+  static Armor last_armor_, target_armor_;
+};
+
+class RandomArmorSelector : public LogicSelectorBase
+{
+public:
+  RandomArmorSelector()
+  {
+    ROS_INFO("random_armor_selector add");
+  }
+  bool input(const Buffer& buffer) override;
 };
 
 class LastArmorSelector : public LogicSelectorBase
@@ -60,4 +70,20 @@ public:
   bool input(const Buffer& buffer) override;
 };
 
+class HeroArmorSelector : public LogicSelectorBase
+{
+public:
+  HeroArmorSelector() = default;
+  bool input(const Buffer& buffer) override;
+};
+
+class StandardArmorSelector : public LogicSelectorBase
+{
+public:
+  StandardArmorSelector()
+  {
+    ROS_INFO("standard_armor_selector add");
+  }
+  bool input(const Buffer& buffer) override;
+};
 }  // namespace rm_track
