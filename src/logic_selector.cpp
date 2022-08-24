@@ -6,98 +6,57 @@
 
 namespace rm_track
 {
-bool RandomArmorSelector::input(const Buffer& buffer)
+bool RandomArmorSelector::input(const std::shared_ptr<Buffer> buffer)
 {
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-  ROS_INFO("SUCCESSFUL,%d", target_armor_.id);
-  return true;
-}
-
-bool LastArmorSelector::input(const Buffer& buffer)
-{
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-  return true;
-}
-
-bool SameIDArmorSelector::input(const Buffer& buffer)
-{
-  if (buffer.id2caches_.count(last_armor_.id))
+  if (!buffer->id2trackers_.empty())
   {
-    target_armor_ =
-        Armor{ .stamp = buffer.id2caches_.at(last_armor_.id).storage_que_.front().stamp_,
-               .id = last_armor_.id,
-               .transform = buffer.id2caches_.at(last_armor_.id).storage_que_.front().targets_.front().transform };
-    last_armor_ = target_armor_;
-    return true;
+    for (auto& trackers : buffer->id2trackers_)
+    {
+      for (auto& tracker : trackers.second->trackers_)
+        if (tracker.state_ == Tracker::EXIST)
+        {
+          selected_tracker_ = &tracker;
+          double x[6];
+          tracker.getState(x);
+          last_armor_ = Armor{ .id = tracker.target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
+          return true;
+        }
+    }
+    return false;
   }
   else
     return false;
 }
 
-bool StaticArmorSelector::input(const Buffer& buffer)
+bool LastArmorSelector::input(const std::shared_ptr<Buffer> buffer)
 {
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
+}
+
+bool SameIDArmorSelector::input(const std::shared_ptr<Buffer> buffer)
+{
+  return false;
+}
+
+bool StaticArmorSelector::input(const std::shared_ptr<Buffer> buffer)
+{
   return true;
 }
 
-bool ClosestArmorSelector::input(const Buffer& buffer)
+bool ClosestArmorSelector::input(const std::shared_ptr<Buffer> buffer)
 {
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
   return true;
 }
 
-bool HeroArmorSelector::input(const Buffer& buffer)
+bool HeroArmorSelector::input(const std::shared_ptr<Buffer> buffer)
 {
-  if (buffer.id2caches_.count(1))
-  {
-    target_armor_ = Armor{ .stamp = buffer.id2caches_.at(1).storage_que_.front().stamp_,
-                           .id = 1,
-                           .transform = buffer.id2caches_.at(1).storage_que_.front().targets_.front().transform };
-    last_armor_ = target_armor_;
-    return true;
-  }
-  else
-    return false;
+  return false;
 }
 
-bool StandardArmorSelector::input(const Buffer& buffer)
+bool StandardArmorSelector::input(const std::shared_ptr<Buffer> buffer)
 {
-  int armor_id;
-  bool has_standard = true;
-  if (buffer.id2caches_.count(3))
-    armor_id = 3;
-  else if (buffer.id2caches_.count(4))
-    armor_id = 4;
-  else if (buffer.id2caches_.count(5))
-    armor_id = 5;
-  else
-    has_standard = false;
-  if (has_standard)
-  {
-    target_armor_ =
-        Armor{ .stamp = buffer.id2caches_.at(armor_id).storage_que_.front().stamp_,
-               .id = armor_id,
-               .transform = buffer.id2caches_.at(armor_id).storage_que_.front().targets_.front().transform };
-    last_armor_ = target_armor_;
-    ROS_INFO("SUCCESSFUL,%d", armor_id);
-    return true;
-  }
-  else
-    return false;
+  return false;
 }
 
-Armor LogicSelectorBase::target_armor_;
+Tracker* LogicSelectorBase::selected_tracker_;
 Armor LogicSelectorBase::last_armor_;
 }  // namespace rm_track

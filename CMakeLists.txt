@@ -43,7 +43,6 @@ include_directories(
 ## Declare a C++ executable
 add_executable(${PROJECT_NAME}
         src/main.cpp
-        src/time_cache.cpp
         src/logic_filter.cpp
         src/logic_selector.cpp
         src/ekf/ekf_base.cpp

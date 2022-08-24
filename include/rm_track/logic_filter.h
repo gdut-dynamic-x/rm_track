@@ -14,7 +14,7 @@ class LogicFilterBase
 {
 public:
   explicit LogicFilterBase(XmlRpc::XmlRpcValue rpc_value);
-  virtual void input(Buffer& buffer){};
+  virtual void input(std::shared_ptr<Buffer> buffer){};
 
 protected:
   double basic_range_[2];
@@ -25,7 +25,7 @@ class HeightFilter : public LogicFilterBase
 {
 public:
   explicit HeightFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer);
-  void input(Buffer& buffer) override;
+  void input(std::shared_ptr<Buffer> buffer) override;
 
 private:
   tf2_ros::Buffer* tf_buffer_;
@@ -35,7 +35,7 @@ class DistanceFilter : public LogicFilterBase
 {
 public:
   explicit DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer);
-  void input(Buffer& buffer) override;
+  void input(std::shared_ptr<Buffer> buffer) override;
 
 private:
   tf2_ros::Buffer* tf_buffer_;
@@ -45,7 +45,7 @@ class ConfidenceFilter : public LogicFilterBase
 {
 public:
   explicit ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value);
-  void input(Buffer& buffer) override;
+  void input(std::shared_ptr<Buffer> buffer) override;
 };
 
 }  // namespace rm_track

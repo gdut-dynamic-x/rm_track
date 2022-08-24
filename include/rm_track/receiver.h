@@ -19,46 +19,20 @@ template <class MsgType>
 class ReceiverBase
 {
 public:
-  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, bool& update_flag, std::string topic)
-    : buffer_(buffer), tf_buffer_(tf_buffer), update_flag_(update_flag), tf_filter_(msg_sub_, *tf_buffer_, "odom", 10, 0)
+  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, std::string topic)
+    : buffer_(buffer), tf_buffer_(tf_buffer), tf_filter_(msg_sub_, *tf_buffer_, "odom", 10, nullptr)
   {
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
 
 protected:
-  std::unordered_map<int, DetectionStorage> id2storage_;
   tf2_ros::Buffer* tf_buffer_;
-  bool& update_flag_;
-
-  void insertData(int id, const geometry_msgs::PoseStamped& pose, double confidence)
-  {
-    geometry_msgs::PoseStamped pose_out;
-    try
-    {
-      tf_buffer_->transform(pose, pose_out, "odom");
-    }
-    catch (tf2::TransformException& ex)
-    {
-      ROS_WARN("Failure %s\n", ex.what());
-    }
-    if (id2storage_.find(id) == id2storage_.end())
-      id2storage_.insert(std::make_pair(id, DetectionStorage(pose_out.header.stamp)));
-    id2storage_.find(id)->second.insertData(pose_out.pose, confidence);
-  }
-
-  void updateBuffer(ros::Time latest_time)
-  {
-    for (const auto& storage : id2storage_)
-      buffer_.insertData(storage.first, storage.second);
-    buffer_.updateState(latest_time);
-    id2storage_.clear();
-  }
+  Buffer& buffer_;
 
 private:
   virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg) = 0;
 
-  Buffer& buffer_;
   message_filters::Subscriber<MsgType> msg_sub_;
   tf2_ros::MessageFilter<MsgType> tf_filter_;
 };
@@ -66,9 +40,8 @@ private:
 class RmDetectionReceiver : public ReceiverBase<rm_msgs::TargetDetectionArray>
 {
 public:
-  RmDetectionReceiver(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, bool& update_flag,
-                      std::string topic)
-    : ReceiverBase(nh, buffer, tf_buffer, update_flag, topic), tf_listener(*tf_buffer_)
+  RmDetectionReceiver(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, std::string topic)
+    : ReceiverBase(nh, buffer, tf_buffer, topic), tf_listener(*tf_buffer_)
   {
   }
 
@@ -76,16 +49,28 @@ private:
   tf2_ros::TransformListener tf_listener;
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
-    update_flag_ = true;
+    std::vector<TargetStamp> target_stamps;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header.frame_id = msg->header.frame_id;
       pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose;
-      insertData(detection.id, pose_stamped, detection.confidence);
+      try
+      {
+        tf_buffer_->transform(pose_stamped, pose_stamped, "odom");
+      }
+      catch (tf2::TransformException& ex)
+      {
+        ROS_WARN("Failure %s\n", ex.what());
+      }
+      tf2::Transform transform;
+      tf2::fromMsg(pose_stamped.pose, transform);
+      target_stamps.push_back(
+          TargetStamp{ .target{ .id = detection.id, .transform = transform, .confidence = detection.confidence },
+                       .stamp = msg->header.stamp });
     }
-    updateBuffer(msg->header.stamp);
+    buffer_.updateBuffer(target_stamps);
   }
 };
 
@@ -97,18 +82,27 @@ public:
 private:
   void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
-    update_flag_ = true;
-    if ((msg->header.stamp - ros::Time::now()).toSec() > 0)
-      ROS_ERROR("Future data!");
+    std::vector<TargetStamp> target_stamps;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header.frame_id = msg->header.frame_id;
       pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose.pose.pose;
-      insertData(detection.id[0], pose_stamped, 1.0);
+      try
+      {
+        tf_buffer_->transform(pose_stamped, pose_stamped, "odom");
+      }
+      catch (tf2::TransformException& ex)
+      {
+        ROS_WARN("Failure %s\n", ex.what());
+      }
+      tf2::Transform transform;
+      tf2::fromMsg(pose_stamped.pose, transform);
+      target_stamps.push_back(TargetStamp{ .target{ .id = detection.id[0], .transform = transform, .confidence = 1.0 },
+                                           .stamp = msg->header.stamp });
     }
-    updateBuffer(msg->header.stamp);
+    buffer_.updateBuffer(target_stamps);
   }
 };
 

@@ -19,7 +19,7 @@ using namespace casadi;
 class EkfBase
 {
 public:
-  virtual void init(ros::NodeHandle& nh) = 0;
+  virtual void initStaticConfig(ros::NodeHandle& nh) = 0;
   void predict(const DM& u, double dt);
   void update(const DM& y, const DM& u);
   void setInitialGuess(const DM& x0, const DM& p0);
@@ -27,7 +27,6 @@ public:
   void setNoise(const DM& Q, const DM& R);
   DM getState() const;
   DM getCovariance() const;
-  bool inited_ = false;
 
 protected:
   void setup(const Function& f, const Function& g);

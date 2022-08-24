@@ -25,35 +25,8 @@ HeightFilter::HeightFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer
 {
   ROS_INFO("Height filter add.");
 }
-void HeightFilter::input(Buffer& buffer)
+void HeightFilter::input(std::shared_ptr<Buffer> buffer)
 {
-  for (auto& cache : buffer.id2caches_)
-  {
-    for (auto& storage : cache.second.storage_que_)
-    {
-      auto& targets = storage.targets_;
-      auto target_it = targets.begin();
-      while (target_it != targets.end())
-      {
-        tf2::Transform odom2target = target_it->transform;
-        geometry_msgs::TransformStamped odom2base;
-        try
-        {
-          odom2base = tf_buffer_->lookupTransform("base_link", "odom", storage.stamp_);
-        }
-        catch (tf2::TransformException& ex)
-        {
-          ROS_WARN("%s", ex.what());
-          return;
-        }
-        if (std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) < basic_range_[0] ||
-            std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) > basic_range_[1])
-          target_it = targets.erase(target_it);
-        else
-          target_it++;
-      }
-    }
-  }
 }
 
 DistanceFilter::DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer)
@@ -61,44 +34,14 @@ DistanceFilter::DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Bu
 {
   ROS_INFO("Distance filter add.");
 }
-void DistanceFilter::input(Buffer& buffer)
+void DistanceFilter::input(std::shared_ptr<Buffer> buffer)
 {
-  for (auto& cache : buffer.id2caches_)
-  {
-    for (auto& storage : cache.second.storage_que_)
-    {
-      auto& targets = storage.targets_;
-      auto target_it = targets.begin();
-      while (target_it != targets.end())
-      {
-        tf2::Transform transform = target_it->transform;
-        geometry_msgs::Pose pose;
-        tf2::toMsg(transform, pose);
-        geometry_msgs::TransformStamped odom2base;
-        try
-        {
-          odom2base = tf_buffer_->lookupTransform("base_link", "odom", storage.stamp_);
-        }
-        catch (tf2::TransformException& ex)
-        {
-          ROS_WARN("%s", ex.what());
-          return;
-        }
-        tf2::doTransform(pose, pose, odom2base);
-        tf2::fromMsg(pose, transform);
-        if (transform.getOrigin().length() < basic_range_[0] || transform.getOrigin().length() > basic_range_[1])
-          target_it = targets.erase(target_it);
-        else
-          target_it++;
-      }
-    }
-  }
 }
 
 ConfidenceFilter::ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value) : LogicFilterBase(rpc_value)
 {
 }
-void ConfidenceFilter::input(Buffer& buffer)
+void ConfidenceFilter::input(std::shared_ptr<Buffer> buffer)
 {
 }
 

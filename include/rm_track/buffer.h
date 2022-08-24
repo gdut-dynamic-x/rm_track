@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "time_cache.h"
+#include "tracker.h"
 #include <unordered_map>
 #include <ros/ros.h>
 
@@ -14,43 +14,52 @@ class Buffer
 public:
   Buffer(ros::NodeHandle& nh)
   {
+    nh.param("max_match_distance", max_match_distance_, 0.2);
     nh.param("max_storage_time", max_storage_time_, 5.0);
     nh.param("max_lost_time", max_lost_time_, 0.1);
+    LinearKf predictor;
+    ros::NodeHandle linear_kf_nh = ros::NodeHandle(nh, "linear_kf");
+    predictor.initStaticConfig(linear_kf_nh);
   }
-  void insertData(int id, DetectionStorage data)
+  void addTracker(TargetStamp& target_stamp)
   {
-    (id2caches_.find(id) == id2caches_.end() ? allocateCache(id) : id2caches_.at(id)).insertData(data);
+    (id2trackers_.find(target_stamp.target.id) == id2trackers_.end() ? allocateTrackers(target_stamp.target.id) :
+                                                                       id2trackers_[target_stamp.target.id])
+        ->addTracker(target_stamp);
   }
-  TimeCache& getTimeCache(int id)
+  void updateBuffer(std::vector<TargetStamp> target_stamps)
   {
-    return id2caches_.at(id);
+    for (auto& trackers : id2trackers_)
+      trackers.second->updateTracker(target_stamps);
+    if (!target_stamps.empty())
+      for (auto& target_stamp : target_stamps)
+        addTracker(target_stamp);
   }
-  void updateState(ros::Time latest_time)
+  void updateState()
   {
-    for (auto& cache : id2caches_)
-      cache.second.updateState(latest_time);
-  }
-  void eraseUselessData()
-  {
-    auto cache_it = id2caches_.begin();
-    while (cache_it != id2caches_.end())
+    for (auto& trackers : id2trackers_)
     {
-      cache_it->second.eraseUselessData();
-      if (cache_it->second.storage_que_.empty())
-        id2caches_.erase(cache_it++);
-      else
-        cache_it++;
+      for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
+      {
+        it->updateState();
+        if (it->target_cache_.empty())
+          it = trackers.second->trackers_.erase(it);
+        else
+          it++;
+      }
     }
   }
 
-  std::unordered_map<int, TimeCache> id2caches_;
+  std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
 
 private:
-  double max_storage_time_, max_lost_time_;
-  TimeCache& allocateCache(int id)
+  std::shared_ptr<Trackers>& allocateTrackers(int id)
   {
-    id2caches_.insert(std::make_pair(id, TimeCache(ros::Duration(max_storage_time_), ros::Duration(max_lost_time_))));
-    return id2caches_.at(id);
+    id2trackers_.insert(
+        std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_, max_storage_time_)));
+    return id2trackers_[id];
   }
+  double max_match_distance_;
+  double max_storage_time_, max_lost_time_;
 };
 }  // namespace rm_track
