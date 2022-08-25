@@ -18,8 +18,14 @@ struct Target
 
 struct TargetStamp
 {
-  Target target;
   ros::Time stamp;
+  Target target;
+};
+
+struct TargetsStamp
+{
+  ros::Time stamp;
+  std::vector<Target> targets;
 };
 
 class TargetMatcher
@@ -85,31 +91,36 @@ public:
     target_matcher_.setMaxMatchDistance(max_match_distance_);
   }
 
-  void updateTracker(std::vector<TargetStamp>& target_stamps)
+  void updateTracker(TargetsStamp& targets_stamp)
   {
     if (state_ == LOST)
       return;
-    predictor_.predict((target_stamps.front().stamp - last_predict_time_).toSec());
-    last_predict_time_ = target_stamps.front().stamp;
+    predictor_.predict((targets_stamp.stamp - last_predict_time_).toSec());
+    last_predict_time_ = targets_stamp.stamp;
+    if (targets_stamp.targets.empty())
+      return;
     double x[6];
     predictor_.getState(x);
-    auto match_target_it = target_stamps.begin();
+    auto match_target_it = targets_stamp.targets.begin();
     target_matcher_.setTargetPosition(tf2::Vector3(x[0], x[2], x[4]));
-    for (auto it = target_stamps.begin(); it != target_stamps.end(); it++)
+    for (auto it = targets_stamp.targets.begin(); it != targets_stamp.targets.end(); it++)
     {
-      if (target_matcher_.input(it->target.transform.getOrigin()))
+      if (target_matcher_.input(it->transform.getOrigin()))
         match_target_it = it;
     }
     if (target_matcher_.match_successful_)
     {
-      target_cache_.push_back(*match_target_it);
+      target_cache_.push_back(TargetStamp{
+          .stamp = targets_stamp.stamp,
+          .target = *match_target_it,
+      });
       double z[3];
-      z[0] = match_target_it->target.transform.getOrigin().x();
-      z[1] = match_target_it->target.transform.getOrigin().y();
-      z[2] = match_target_it->target.transform.getOrigin().z();
+      z[0] = match_target_it->transform.getOrigin().x();
+      z[1] = match_target_it->transform.getOrigin().y();
+      z[2] = match_target_it->transform.getOrigin().z();
       predictor_.update(z);
       state_ = EXIST;
-      target_stamps.erase(match_target_it);
+      targets_stamp.targets.erase(match_target_it);
     }
   }
 
@@ -160,13 +171,14 @@ public:
     , max_storage_time_(max_storage_time)
   {
   }
-  void updateTracker(std::vector<TargetStamp>& target_stamps)
+  void updateTracker(TargetsStamp& target_stamps)
   {
-    for (auto it = trackers_.begin(); it != trackers_.end();)
-      it->updateTracker(target_stamps);
+    for (auto& tracker : trackers_)
+      tracker.updateTracker(target_stamps);
   }
-  void addTracker(TargetStamp& target_stamp)
+  void addTracker(ros::Time stamp, Target& target)
   {
+    TargetStamp target_stamp{ .stamp = stamp, .target = target };
     trackers_.push_back(Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, target_stamp));
   }
   std::vector<Tracker> trackers_;

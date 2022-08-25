@@ -30,6 +30,7 @@ bool RandomArmorSelector::input(const std::shared_ptr<Buffer> buffer)
 
 bool LastArmorSelector::input(const std::shared_ptr<Buffer> buffer)
 {
+  return true;
 }
 
 bool SameIDArmorSelector::input(const std::shared_ptr<Buffer> buffer)

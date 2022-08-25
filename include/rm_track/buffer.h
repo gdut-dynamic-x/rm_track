@@ -21,19 +21,26 @@ public:
     ros::NodeHandle linear_kf_nh = ros::NodeHandle(nh, "linear_kf");
     predictor.initStaticConfig(linear_kf_nh);
   }
-  void addTracker(TargetStamp& target_stamp)
+  void addTracker(ros::Time stamp, Target& target)
   {
-    (id2trackers_.find(target_stamp.target.id) == id2trackers_.end() ? allocateTrackers(target_stamp.target.id) :
-                                                                       id2trackers_[target_stamp.target.id])
-        ->addTracker(target_stamp);
+    (id2trackers_.find(target.id) == id2trackers_.end() ? allocateTrackers(target.id) : id2trackers_[target.id])
+        ->addTracker(stamp, target);
   }
-  void updateBuffer(std::vector<TargetStamp> target_stamps)
+  void updateBuffer(TargetsStamp targets_stamp)
   {
-    for (auto& trackers : id2trackers_)
-      trackers.second->updateTracker(target_stamps);
-    if (!target_stamps.empty())
-      for (auto& target_stamp : target_stamps)
-        addTracker(target_stamp);
+    for (auto it = id2trackers_.begin(); it != id2trackers_.end();)
+    {
+      if (it->second->trackers_.empty())
+        it = id2trackers_.erase(it);
+      else
+      {
+        it->second->updateTracker(targets_stamp);
+        it++;
+      }
+    }
+    if (!targets_stamp.targets.empty())
+      for (auto& target : targets_stamp.targets)
+        addTracker(targets_stamp.stamp, target);
   }
   void updateState()
   {

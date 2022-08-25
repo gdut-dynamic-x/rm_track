@@ -49,7 +49,8 @@ private:
   tf2_ros::TransformListener tf_listener;
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
-    std::vector<TargetStamp> target_stamps;
+    TargetsStamp targets_stamp;
+    targets_stamp.stamp = msg->header.stamp;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
@@ -66,11 +67,10 @@ private:
       }
       tf2::Transform transform;
       tf2::fromMsg(pose_stamped.pose, transform);
-      target_stamps.push_back(
-          TargetStamp{ .target{ .id = detection.id, .transform = transform, .confidence = detection.confidence },
-                       .stamp = msg->header.stamp });
+      targets_stamp.targets.push_back(
+          Target{ .id = detection.id, .transform = transform, .confidence = detection.confidence });
     }
-    buffer_.updateBuffer(target_stamps);
+    buffer_.updateBuffer(targets_stamp);
   }
 };
 
@@ -82,7 +82,8 @@ public:
 private:
   void msgCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg) override
   {
-    std::vector<TargetStamp> target_stamps;
+    TargetsStamp targets_stamp;
+    targets_stamp.stamp = msg->header.stamp;
     for (const auto& detection : msg->detections)
     {
       geometry_msgs::PoseStamped pose_stamped;
@@ -99,10 +100,9 @@ private:
       }
       tf2::Transform transform;
       tf2::fromMsg(pose_stamped.pose, transform);
-      target_stamps.push_back(TargetStamp{ .target{ .id = detection.id[0], .transform = transform, .confidence = 1.0 },
-                                           .stamp = msg->header.stamp });
+      targets_stamp.targets.push_back(Target{ .id = detection.id[0], .transform = transform, .confidence = 1.0 });
     }
-    buffer_.updateBuffer(target_stamps);
+    buffer_.updateBuffer(targets_stamp);
   }
 };
 
