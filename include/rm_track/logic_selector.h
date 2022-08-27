@@ -18,7 +18,7 @@ class LogicSelectorBase
 {
 public:
   LogicSelectorBase() = default;
-  virtual bool input(const std::shared_ptr<Buffer> buffer)
+  virtual bool input(const std::shared_ptr<Buffer>& buffer)
   {
     return true;
   }
@@ -38,9 +38,9 @@ class RandomArmorSelector : public LogicSelectorBase
 public:
   RandomArmorSelector()
   {
-    ROS_INFO("random_armor_selector add");
+    ROS_INFO("Add random_armor_selector.");
   }
-  bool input(const std::shared_ptr<Buffer> buffer) override;
+  bool input(const std::shared_ptr<Buffer>& buffer) override;
 };
 
 class LastArmorSelector : public LogicSelectorBase
@@ -48,10 +48,10 @@ class LastArmorSelector : public LogicSelectorBase
 public:
   LastArmorSelector()
   {
-    ROS_INFO("last_armor_selector add");
+    ROS_INFO("Add last_armor_selector.");
     target_matcher_.setMaxMatchDistance(0.1);
   }
-  bool input(const std::shared_ptr<Buffer> buffer) override;
+  bool input(const std::shared_ptr<Buffer>& buffer) override;
 
 private:
   TargetMatcher target_matcher_;
@@ -60,29 +60,32 @@ private:
 class SameIDArmorSelector : public LogicSelectorBase
 {
 public:
-  SameIDArmorSelector() = default;
-  bool input(const std::shared_ptr<Buffer> buffer) override;
+  SameIDArmorSelector()
+  {
+    ROS_INFO("Add same_id_armor_selector");
+  }
+  bool input(const std::shared_ptr<Buffer>& buffer) override;
 };
 
 class StaticArmorSelector : public LogicSelectorBase
 {
 public:
   StaticArmorSelector() = default;
-  bool input(const std::shared_ptr<Buffer> buffer) override;
+  bool input(const std::shared_ptr<Buffer>& buffer) override;
 };
 
 class ClosestArmorSelector : public LogicSelectorBase
 {
 public:
   ClosestArmorSelector() = default;
-  bool input(const std::shared_ptr<Buffer> buffer) override;
+  bool input(const std::shared_ptr<Buffer>& buffer) override;
 };
 
 class HeroArmorSelector : public LogicSelectorBase
 {
 public:
   HeroArmorSelector() = default;
-  bool input(const std::shared_ptr<Buffer> buffer) override;
+  bool input(const std::shared_ptr<Buffer>& buffer) override;
 };
 
 class StandardArmorSelector : public LogicSelectorBase
@@ -92,6 +95,6 @@ public:
   {
     ROS_INFO("standard_armor_selector add");
   }
-  bool input(const std::shared_ptr<Buffer> buffer) override;
+  bool input(const std::shared_ptr<Buffer>& buffer) override;
 };
 }  // namespace rm_track
