@@ -60,8 +60,8 @@ void RmTrack::run()
 {
   buffer_->updateState();
   Tracker* selected_tracker = nullptr;
-  for (auto& filter : logic_filters_)
-    filter->input(buffer_);
+  //  for (auto& filter : logic_filters_)
+  //    filter->input(buffer_);
   for (auto& selector : logic_selectors_)
   {
     if (selector->input(buffer_))

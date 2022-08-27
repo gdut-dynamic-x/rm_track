@@ -34,6 +34,8 @@ public:
   void setTargetPosition(tf2::Vector3 target_position)
   {
     target_position_ = target_position;
+    min_position_diff_ = DBL_MAX;
+    match_successful_ = false;
   }
   void setMaxMatchDistance(double max_match_distance)
   {
@@ -51,13 +53,16 @@ public:
     else
       return false;
   }
-
-  bool match_successful_ = false;
+  const bool matchSuccessful()
+  {
+    return match_successful_;
+  }
 
 private:
   tf2::Vector3 target_position_;
   double max_match_distance_;
   double min_position_diff_ = DBL_MAX;
+  bool match_successful_ = false;
 };
 
 class Tracker
@@ -108,7 +113,7 @@ public:
       if (target_matcher_.input(it->transform.getOrigin()))
         match_target_it = it;
     }
-    if (target_matcher_.match_successful_)
+    if (target_matcher_.matchSuccessful())
     {
       target_cache_.push_back(TargetStamp{
           .stamp = targets_stamp.stamp,

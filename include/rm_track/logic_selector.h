@@ -30,6 +30,7 @@ public:
 protected:
   static Tracker* selected_tracker_;
   static Armor last_armor_;
+  static bool has_last_armor_;
 };
 
 class RandomArmorSelector : public LogicSelectorBase
@@ -45,8 +46,15 @@ public:
 class LastArmorSelector : public LogicSelectorBase
 {
 public:
-  LastArmorSelector() = default;
+  LastArmorSelector()
+  {
+    ROS_INFO("last_armor_selector add");
+    target_matcher_.setMaxMatchDistance(0.1);
+  }
   bool input(const std::shared_ptr<Buffer> buffer) override;
+
+private:
+  TargetMatcher target_matcher_;
 };
 
 class SameIDArmorSelector : public LogicSelectorBase
