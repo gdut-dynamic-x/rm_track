@@ -129,7 +129,7 @@ public:
     }
   }
 
-  void updateState()
+  void updateTrackerState()
   {
     if ((ros::Time::now() - target_cache_.back().stamp).toSec() > max_lost_time_)
       state_ = LOST;
@@ -140,11 +140,11 @@ public:
         it = target_cache_.erase(it);
       }
       else
-        it++;
+        break;
     }
   }
 
-  void getState(double* x)
+  void getTargetState(double* x)
   {
     predictor_.getState(x);
   }

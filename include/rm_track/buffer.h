@@ -48,7 +48,7 @@ public:
     {
       for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
       {
-        it->updateState();
+        it->updateTrackerState();
         if (it->target_cache_.empty())
           it = trackers.second->trackers_.erase(it);
         else

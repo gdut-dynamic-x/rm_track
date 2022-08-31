@@ -17,7 +17,7 @@ bool RandomArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
         {
           selected_tracker_ = &tracker;
           double x[6];
-          tracker.getState(x);
+          tracker.getTargetState(x);
           last_armor_ = Armor{ .id = tracker.target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
           has_last_armor_ = true;
           return true;
@@ -40,7 +40,7 @@ bool LastArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
       if (tracker.state_ == Tracker::EXIST)
       {
         double x[6];
-        tracker.getState(x);
+        tracker.getTargetState(x);
         if (target_matcher_.input(tf2::Vector3{ x[0], x[2], x[4] }))
         {
           selected_tracker_ = &tracker;
@@ -66,7 +66,7 @@ bool SameIDArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
       {
         selected_tracker_ = &tracker;
         double x[6];
-        selected_tracker_->getState(x);
+        selected_tracker_->getTargetState(x);
         last_armor_ = Armor{ .id = selected_tracker_->target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
         has_last_armor_ = true;
         return true;
