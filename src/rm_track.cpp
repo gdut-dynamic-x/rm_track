@@ -34,16 +34,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
         logic_selectors_.push_back(new LastArmorSelector());
       else if (selectors[i] == "same_id_armor")
         logic_selectors_.push_back(new SameIDArmorSelector());
-      else if (selectors[i] == "static_armor")
-        logic_selectors_.push_back(new StaticArmorSelector());
-      else if (selectors[i] == "closest_armor")
-        logic_selectors_.push_back(new ClosestArmorSelector());
       else if (selectors[i] == "random_armor")
         logic_selectors_.push_back(new RandomArmorSelector());
-      else if (selectors[i] == "standard_armor")
-        logic_selectors_.push_back(new StandardArmorSelector());
-      else if (selectors[i] == "hero_armor")
-        logic_selectors_.push_back(new HeroArmorSelector());
       else
         ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
@@ -60,8 +52,8 @@ void RmTrack::run()
 {
   buffer_->updateState();
   Tracker* selected_tracker = nullptr;
-  //  for (auto& filter : logic_filters_)
-  //    filter->input(buffer_);
+  for (auto& filter : logic_filters_)
+    filter->input(buffer_);
   for (auto& selector : logic_selectors_)
   {
     if (selector->input(buffer_))

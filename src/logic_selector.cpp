@@ -76,26 +76,6 @@ bool SameIDArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
   }
 }
 
-bool StaticArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
-{
-  return true;
-}
-
-bool ClosestArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
-{
-  return true;
-}
-
-bool HeroArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
-{
-  return false;
-}
-
-bool StandardArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
-{
-  return false;
-}
-
 Tracker* LogicSelectorBase::selected_tracker_;
 Armor LogicSelectorBase::last_armor_;
 bool LogicSelectorBase::has_last_armor_ = false;

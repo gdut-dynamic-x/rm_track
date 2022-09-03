@@ -134,6 +134,8 @@ public:
   {
     if ((ros::Time::now() - target_cache_.back().stamp).toSec() > max_lost_time_)
       state_ = LOST;
+    if (state_ == NOT_SELECTABLE)
+      state_ = EXIST;
     for (auto it = target_cache_.begin(); it != target_cache_.end();)
     {
       if ((ros::Time::now() - it->stamp).toSec() > max_storage_time_)

@@ -27,6 +27,29 @@ HeightFilter::HeightFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer
 }
 void HeightFilter::input(std::shared_ptr<Buffer> buffer)
 {
+  for (auto& trackers : buffer->id2trackers_)
+  {
+    for (auto& tracker : trackers.second->trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST)
+      {
+        tf2::Transform odom2target = tracker.target_cache_.back().target.transform;
+        geometry_msgs::TransformStamped odom2base;
+        try
+        {
+          odom2base = tf_buffer_->lookupTransform("base_link", "odom", tracker.target_cache_.back().stamp);
+        }
+        catch (tf2::TransformException& ex)
+        {
+          ROS_WARN("%s", ex.what());
+          return;
+        }
+        if (std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) < basic_range_[0] ||
+            std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) > basic_range_[1])
+          tracker.state_ = Tracker::NOT_SELECTABLE;
+      }
+    }
+  }
 }
 
 DistanceFilter::DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer)
@@ -36,6 +59,32 @@ DistanceFilter::DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Bu
 }
 void DistanceFilter::input(std::shared_ptr<Buffer> buffer)
 {
+  for (auto& trackers : buffer->id2trackers_)
+  {
+    for (auto& tracker : trackers.second->trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST)
+      {
+        tf2::Transform transform = tracker.target_cache_.back().target.transform;
+        geometry_msgs::Pose pose;
+        tf2::toMsg(transform, pose);
+        geometry_msgs::TransformStamped odom2base;
+        try
+        {
+          odom2base = tf_buffer_->lookupTransform("base_link", "odom", tracker.target_cache_.back().stamp);
+        }
+        catch (tf2::TransformException& ex)
+        {
+          ROS_WARN("%s", ex.what());
+          return;
+        }
+        tf2::doTransform(pose, pose, odom2base);
+        tf2::fromMsg(pose, transform);
+        if (transform.getOrigin().length() < basic_range_[0] || transform.getOrigin().length() > basic_range_[1])
+          tracker.state_ = Tracker::NOT_SELECTABLE;
+      }
+    }
+  }
 }
 
 ConfidenceFilter::ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value) : LogicFilterBase(rpc_value)

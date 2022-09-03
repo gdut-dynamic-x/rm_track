@@ -66,35 +66,4 @@ public:
   }
   bool input(const std::shared_ptr<Buffer>& buffer) override;
 };
-
-class StaticArmorSelector : public LogicSelectorBase
-{
-public:
-  StaticArmorSelector() = default;
-  bool input(const std::shared_ptr<Buffer>& buffer) override;
-};
-
-class ClosestArmorSelector : public LogicSelectorBase
-{
-public:
-  ClosestArmorSelector() = default;
-  bool input(const std::shared_ptr<Buffer>& buffer) override;
-};
-
-class HeroArmorSelector : public LogicSelectorBase
-{
-public:
-  HeroArmorSelector() = default;
-  bool input(const std::shared_ptr<Buffer>& buffer) override;
-};
-
-class StandardArmorSelector : public LogicSelectorBase
-{
-public:
-  StandardArmorSelector()
-  {
-    ROS_INFO("standard_armor_selector add");
-  }
-  bool input(const std::shared_ptr<Buffer>& buffer) override;
-};
 }  // namespace rm_track
