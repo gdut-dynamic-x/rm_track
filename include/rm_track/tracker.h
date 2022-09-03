@@ -76,7 +76,8 @@ public:
     LOST
   } state_;
 
-  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time, TargetStamp& target_stamp)
+  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time, TargetStamp& target_stamp,
+          double* initial_velocity)
     : target_id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
@@ -85,11 +86,11 @@ public:
     target_cache_.push_back(target_stamp);
     double x[6];
     x[0] = target_stamp.target.transform.getOrigin().x();
-    x[1] = 0;
+    x[1] = initial_velocity[0];
     x[2] = target_stamp.target.transform.getOrigin().y();
-    x[3] = 0;
+    x[3] = initial_velocity[1];
     x[4] = target_stamp.target.transform.getOrigin().z();
-    x[5] = 0;
+    x[5] = initial_velocity[2];
     predictor_.reset(x);
     last_predict_time_ = target_stamp.stamp;
     state_ = APPEAR;
@@ -184,7 +185,34 @@ public:
   void addTracker(ros::Time stamp, Target& target)
   {
     TargetStamp target_stamp{ .stamp = stamp, .target = target };
-    trackers_.push_back(Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, target_stamp));
+    double v0[3] = { 0, 0, 0 };
+    if (getExistTrackerNumber() == 1)
+    {
+      double x[6];
+      getExistTracker().front().getTargetState(x);
+      v0[0] = x[1];
+      v0[1] = x[3];
+      v0[2] = x[5];
+    }
+    trackers_.push_back(Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, target_stamp, v0));
+  }
+  int getExistTrackerNumber()
+  {
+    int num = 0;
+    for (auto& tracker : trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST)
+        num++;
+    }
+    return num;
+  }
+  std::vector<Tracker> getExistTracker()
+  {
+    std::vector<Tracker> exist_tracker;
+    for (auto& tracker : trackers_)
+      if (tracker.state_ == Tracker::EXIST)
+        exist_tracker.push_back(tracker);
+    return exist_tracker;
   }
   std::vector<Tracker> trackers_;
 
