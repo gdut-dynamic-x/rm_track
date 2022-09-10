@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "buffer.h"
+#include "tracker.h"
 #include <ros/ros.h>
 
 namespace rm_track
@@ -18,7 +18,7 @@ class LogicSelectorBase
 {
 public:
   LogicSelectorBase() = default;
-  virtual bool input(const std::shared_ptr<Buffer>& buffer)
+  virtual bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
   {
     return true;
   }
@@ -40,18 +40,18 @@ public:
   {
     ROS_INFO("Add random_armor_selector.");
   }
-  bool input(const std::shared_ptr<Buffer>& buffer) override;
+  bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };
 
 class LastArmorSelector : public LogicSelectorBase
 {
 public:
-  LastArmorSelector()
+  LastArmorSelector(double max_match_distance)
   {
     ROS_INFO("Add last_armor_selector.");
-    target_matcher_.setMaxMatchDistance(0.1);
+    target_matcher_.setMaxMatchDistance(max_match_distance);
   }
-  bool input(const std::shared_ptr<Buffer>& buffer) override;
+  bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 
 private:
   TargetMatcher target_matcher_;
@@ -64,6 +64,6 @@ public:
   {
     ROS_INFO("Add same_id_armor_selector");
   }
-  bool input(const std::shared_ptr<Buffer>& buffer) override;
+  bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };
 }  // namespace rm_track

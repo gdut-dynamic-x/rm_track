@@ -25,9 +25,9 @@ HeightFilter::HeightFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer
 {
   ROS_INFO("Height filter add.");
 }
-void HeightFilter::input(std::shared_ptr<Buffer> buffer)
+void HeightFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
-  for (auto& trackers : buffer->id2trackers_)
+  for (auto& trackers : id2trackers)
   {
     for (auto& tracker : trackers.second->trackers_)
     {
@@ -57,9 +57,9 @@ DistanceFilter::DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Bu
 {
   ROS_INFO("Distance filter add.");
 }
-void DistanceFilter::input(std::shared_ptr<Buffer> buffer)
+void DistanceFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
-  for (auto& trackers : buffer->id2trackers_)
+  for (auto& trackers : id2trackers)
   {
     for (auto& tracker : trackers.second->trackers_)
     {
@@ -90,7 +90,7 @@ void DistanceFilter::input(std::shared_ptr<Buffer> buffer)
 ConfidenceFilter::ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value) : LogicFilterBase(rpc_value)
 {
 }
-void ConfidenceFilter::input(std::shared_ptr<Buffer> buffer)
+void ConfidenceFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
 }
 

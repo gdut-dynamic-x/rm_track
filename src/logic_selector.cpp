@@ -6,11 +6,11 @@
 
 namespace rm_track
 {
-bool RandomArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
+bool RandomArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
-  if (!buffer->id2trackers_.empty())
+  if (!id2trackers.empty())
   {
-    for (auto& trackers : buffer->id2trackers_)
+    for (auto& trackers : id2trackers)
     {
       for (auto& tracker : trackers.second->trackers_)
         if (tracker.state_ == Tracker::EXIST)
@@ -29,12 +29,12 @@ bool RandomArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
     return false;
 }
 
-bool LastArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
+bool LastArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
   if (!has_last_armor_)
     return false;
   target_matcher_.setTargetPosition(last_armor_.position);
-  for (auto& trackers : buffer->id2trackers_)
+  for (auto& trackers : id2trackers)
     for (auto& tracker : trackers.second->trackers_)
     {
       if (tracker.state_ == Tracker::EXIST)
@@ -52,15 +52,15 @@ bool LastArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
   return target_matcher_.matchSuccessful();
 }
 
-bool SameIDArmorSelector::input(const std::shared_ptr<Buffer>& buffer)
+bool SameIDArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
   if (!has_last_armor_)
     return false;
-  if (!buffer->id2trackers_.count(last_armor_.id))
+  if (!id2trackers.count(last_armor_.id))
     return false;
   else
   {
-    for (auto& tracker : buffer->id2trackers_.at(last_armor_.id)->trackers_)
+    for (auto& tracker : id2trackers.at(last_armor_.id)->trackers_)
     {
       if (tracker.state_ == Tracker::EXIST)
       {

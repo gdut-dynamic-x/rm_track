@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "buffer.h"
+#include "tracker.h"
 #include <ros/ros.h>
 #include <tf2_ros/buffer.h>
 
@@ -14,7 +14,7 @@ class LogicFilterBase
 {
 public:
   explicit LogicFilterBase(XmlRpc::XmlRpcValue rpc_value);
-  virtual void input(std::shared_ptr<Buffer> buffer){};
+  virtual void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers_){};
 
 protected:
   double basic_range_[2];
@@ -25,7 +25,7 @@ class HeightFilter : public LogicFilterBase
 {
 public:
   explicit HeightFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer);
-  void input(std::shared_ptr<Buffer> buffer) override;
+  void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 
 private:
   tf2_ros::Buffer* tf_buffer_;
@@ -35,7 +35,7 @@ class DistanceFilter : public LogicFilterBase
 {
 public:
   explicit DistanceFilter(const XmlRpc::XmlRpcValue& rpc_value, tf2_ros::Buffer* tf_buffer);
-  void input(std::shared_ptr<Buffer> buffer) override;
+  void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 
 private:
   tf2_ros::Buffer* tf_buffer_;
@@ -45,7 +45,7 @@ class ConfidenceFilter : public LogicFilterBase
 {
 public:
   explicit ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value);
-  void input(std::shared_ptr<Buffer> buffer) override;
+  void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };
 
 }  // namespace rm_track

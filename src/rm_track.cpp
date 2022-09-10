@@ -10,6 +10,8 @@ namespace rm_track
 RmTrack::RmTrack(ros::NodeHandle& nh)
 {
   tf_buffer_ = new tf2_ros::Buffer(ros::Duration(10));
+  double max_match_distance;
+  nh.param("max_match_distance", max_match_distance, 0.2);
   XmlRpc::XmlRpcValue filters;
   if (nh.getParam("filters", filters))
     for (int i = 0; i < filters.size(); ++i)
@@ -31,7 +33,7 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     for (int i = 0; i < selectors.size(); ++i)
     {
       if (selectors[i] == "last_armor")
-        logic_selectors_.push_back(new LastArmorSelector());
+        logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
       else if (selectors[i] == "same_id_armor")
         logic_selectors_.push_back(new SameIDArmorSelector());
       else if (selectors[i] == "random_armor")
@@ -41,22 +43,42 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     }
   else
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
-  ros::NodeHandle buffer_nh = ros::NodeHandle(nh, "buffer");
-  buffer_ = std::make_shared<Buffer>(buffer_nh);
-  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, *buffer_, tf_buffer_, "/tag_detections");
-  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, *buffer_, tf_buffer_, "/detection");
+
+  LinearKf predictor;
+  ros::NodeHandle linear_kf_nh = ros::NodeHandle(nh, "linear_kf");
+  predictor.initStaticConfig(linear_kf_nh);
+
+  apriltag_receiver_ =
+      std::make_shared<AprilTagReceiver>(nh, id2trackers_, max_match_distance, tf_buffer_, "/tag_detections");
+  rm_detection_receiver_ =
+      std::make_shared<RmDetectionReceiver>(nh, id2trackers_, max_match_distance, tf_buffer_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
+}
+
+void RmTrack::updateTrackerState()
+{
+  for (auto& trackers : id2trackers_)
+  {
+    for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
+    {
+      it->updateTrackerState();
+      if (it->target_cache_.empty())
+        it = trackers.second->trackers_.erase(it);
+      else
+        it++;
+    }
+  }
 }
 
 void RmTrack::run()
 {
-  buffer_->updateState();
+  updateTrackerState();
   Tracker* selected_tracker = nullptr;
   for (auto& filter : logic_filters_)
-    filter->input(buffer_);
+    filter->input(id2trackers_);
   for (auto& selector : logic_selectors_)
   {
-    if (selector->input(buffer_))
+    if (selector->input(id2trackers_))
     {
       selected_tracker = selector->output();
       break;

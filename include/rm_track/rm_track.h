@@ -18,7 +18,8 @@ public:
   void run();
 
 private:
-  std::shared_ptr<Buffer> buffer_;
+  void updateTrackerState();
+  std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
   std::vector<LogicFilterBase*> logic_filters_;
   std::vector<LogicSelectorBase*> logic_selectors_;
   tf2_ros::Buffer* tf_buffer_;

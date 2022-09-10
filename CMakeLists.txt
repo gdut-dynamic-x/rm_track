@@ -47,6 +47,7 @@ add_executable(${PROJECT_NAME}
         src/logic_selector.cpp
         src/ekf/ekf_base.cpp
         src/ekf/linear_kf.cpp
+        src/tracker.cpp
         src/rm_track.cpp
         )
 

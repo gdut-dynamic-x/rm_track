@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "buffer.h"
+#include "tracker.h"
 #include <rm_msgs/TargetDetectionArray.h>
 #include <apriltag_ros/AprilTagDetectionArray.h>
 
@@ -19,16 +19,51 @@ template <class MsgType>
 class ReceiverBase
 {
 public:
-  ReceiverBase(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, std::string topic)
-    : buffer_(buffer), tf_buffer_(tf_buffer), tf_filter_(msg_sub_, *tf_buffer_, "odom", 10, nullptr)
+  ReceiverBase(ros::NodeHandle& nh, std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers,
+               double max_match_distance, tf2_ros::Buffer* tf_buffer, std::string topic)
+    : id2trackers_(id2trackers)
+    , max_match_distance_(max_match_distance)
+    , tf_buffer_(tf_buffer)
+    , tf_filter_(msg_sub_, *tf_buffer_, "odom", 10, nullptr)
   {
+    nh.param("max_storage_time", max_storage_time_, 5.0);
+    nh.param("max_lost_time", max_lost_time_, 0.1);
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
 
 protected:
+  std::shared_ptr<Trackers>& allocateTrackers(int id)
+  {
+    id2trackers_.insert(
+        std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_, max_storage_time_)));
+    return id2trackers_[id];
+  }
+  void addTracker(ros::Time stamp, Target& target)
+  {
+    (id2trackers_.find(target.id) == id2trackers_.end() ? allocateTrackers(target.id) : id2trackers_[target.id])
+        ->addTracker(stamp, target);
+  }
+  void updateTracker(TargetsStamp targets_stamp)
+  {
+    for (auto it = id2trackers_.begin(); it != id2trackers_.end();)
+    {
+      if (it->second->trackers_.empty())
+        it = id2trackers_.erase(it);
+      else
+      {
+        it->second->updateTracker(targets_stamp);
+        it++;
+      }
+    }
+    if (!targets_stamp.targets.empty())
+      for (auto& target : targets_stamp.targets)
+        addTracker(targets_stamp.stamp, target);
+  }
   tf2_ros::Buffer* tf_buffer_;
-  Buffer& buffer_;
+  std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers_;
+  double max_storage_time_, max_lost_time_;
+  double max_match_distance_;
 
 private:
   virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg) = 0;
@@ -40,8 +75,9 @@ private:
 class RmDetectionReceiver : public ReceiverBase<rm_msgs::TargetDetectionArray>
 {
 public:
-  RmDetectionReceiver(ros::NodeHandle& nh, Buffer& buffer, tf2_ros::Buffer* tf_buffer, std::string topic)
-    : ReceiverBase(nh, buffer, tf_buffer, topic), tf_listener(*tf_buffer_)
+  RmDetectionReceiver(ros::NodeHandle& nh, std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers,
+                      double max_match_distance, tf2_ros::Buffer* tf_buffer, std::string topic)
+    : ReceiverBase(nh, id2trackers, max_match_distance, tf_buffer, topic), tf_listener(*tf_buffer_)
   {
   }
 
@@ -70,7 +106,7 @@ private:
       targets_stamp.targets.push_back(
           Target{ .id = detection.id, .transform = transform, .confidence = detection.confidence });
     }
-    buffer_.updateBuffer(targets_stamp);
+    updateTracker(targets_stamp);
   }
 };
 
@@ -102,7 +138,7 @@ private:
       tf2::fromMsg(pose_stamped.pose, transform);
       targets_stamp.targets.push_back(Target{ .id = detection.id[0], .transform = transform, .confidence = 1.0 });
     }
-    buffer_.updateBuffer(targets_stamp);
+    updateTracker(targets_stamp);
   }
 };
 
