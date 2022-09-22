@@ -51,7 +51,6 @@ void EkfBase::setInitialGuess(const DM& x0, const DM& p0)
 {
   x_ = x0;
   p_ = p0;
-  inited_ = true;
 }
 
 void EkfBase::setNoise(const DM& Q, const DM& R)

@@ -14,9 +14,10 @@ class LinearKf : public EkfBase
 {
 public:
   LinearKf();
-  void init(ros::NodeHandle& nh) override;
+  void initStaticConfig(ros::NodeHandle& nh) override;
   void reset(double x0[6]);
   void predict(double dt);
+  void predict(double x[6], double dt);
   void update(double z[3]);
   void getState(double x[6]) const;
 
@@ -34,8 +35,6 @@ private:
     q_dynamic_[config.q_element] = config.q_value;
     r_dynamic_[config.r_element] = config.r_value;
   }
-  bool is_debug_{};
-  ros::Publisher measure_pub_;
   bool dynamic_reconfig_initialized_ = false;
   static double q_dynamic_[], r_dynamic_[];
   static dynamic_reconfigure::Server<rm_track::EKfConfig>* reconf_server_;

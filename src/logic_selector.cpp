@@ -6,40 +6,77 @@
 
 namespace rm_track
 {
-bool LastArmorSelector::input(const Buffer& buffer)
+bool RandomArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-  return true;
+  if (!id2trackers.empty())
+  {
+    for (auto& trackers : id2trackers)
+    {
+      for (auto& tracker : trackers.second->trackers_)
+        if (tracker.state_ == Tracker::EXIST)
+        {
+          selected_tracker_ = &tracker;
+          double x[6];
+          tracker.getTargetState(x);
+          last_armor_ = Armor{ .id = tracker.target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
+          has_last_armor_ = true;
+          return true;
+        }
+    }
+    return false;
+  }
+  else
+    return false;
 }
 
-bool SameIDArmorSelector::input(const Buffer& buffer)
+bool LastArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-  return true;
+  if (!has_last_armor_)
+    return false;
+  target_matcher_.setTargetPosition(last_armor_.position);
+  for (auto& trackers : id2trackers)
+    for (auto& tracker : trackers.second->trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST)
+      {
+        double x[6];
+        tracker.getTargetState(x);
+        if (target_matcher_.input(tf2::Vector3{ x[0], x[2], x[4] }))
+        {
+          selected_tracker_ = &tracker;
+          last_armor_ = Armor{ .id = tracker.target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
+        }
+      }
+    }
+  has_last_armor_ = target_matcher_.matchSuccessful();
+  return target_matcher_.matchSuccessful();
 }
 
-bool StaticArmorSelector::input(const Buffer& buffer)
+bool SameIDArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-  return true;
+  if (!has_last_armor_)
+    return false;
+  if (!id2trackers.count(last_armor_.id))
+    return false;
+  else
+  {
+    for (auto& tracker : id2trackers.at(last_armor_.id)->trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST)
+      {
+        selected_tracker_ = &tracker;
+        double x[6];
+        selected_tracker_->getTargetState(x);
+        last_armor_ = Armor{ .id = selected_tracker_->target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
+        has_last_armor_ = true;
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
-bool ClosestArmorSelector::input(const Buffer& buffer)
-{
-  target_armor_ =
-      Armor{ .stamp = buffer.id2caches_.begin()->second.storage_que_.begin()->stamp_,
-             .id = buffer.id2caches_.begin()->first,
-             .transform = buffer.id2caches_.begin()->second.storage_que_.begin()->targets_.begin()->transform };
-  return true;
-}
-
+Tracker* LogicSelectorBase::selected_tracker_;
+Armor LogicSelectorBase::last_armor_;
+bool LogicSelectorBase::has_last_armor_ = false;
 }  // namespace rm_track

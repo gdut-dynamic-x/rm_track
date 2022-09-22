@@ -21,13 +21,9 @@ LinearKf::LinearKf()
   setup(f, g);
 }
 
-void LinearKf::init(ros::NodeHandle& nh)
+void LinearKf::initStaticConfig(ros::NodeHandle& nh)
 {
   getQR(nh);
-  nh.param("debug", is_debug_, false);
-
-  if (is_debug_)
-    measure_pub_ = nh.advertise<geometry_msgs::Point>("measure", 1);
   for (int i = 0; i < 3; i++)
   {
     q_dynamic_[i] = double(q_(2 * i, 2 * i));
@@ -62,19 +58,27 @@ void LinearKf::predict(double dt)
   EkfBase::predict(u, dt);
 }
 
+void LinearKf::predict(double* x, double dt)
+{
+  DM u(0);
+  DM x_predict = f_(DMDict({ { "x", x_ }, { "u", u }, { "dt", dt } })).at("x_next");
+  x[0] = static_cast<double>(x_predict(0, 0));
+  x[1] = static_cast<double>(x_predict(1, 0));
+  x[2] = static_cast<double>(x_predict(2, 0));
+  x[3] = static_cast<double>(x_predict(3, 0));
+  x[4] = static_cast<double>(x_predict(4, 0));
+  x[5] = static_cast<double>(x_predict(5, 0));
+}
+
 void LinearKf::update(double* z)
 {
   DM z_m = DM::vertcat({ z[0], z[1], z[2] });
   DM u(0);
+  DM r = DM::zeros(3, 3);
+  for (int i = 0; i < 3; ++i)
+    r(i, i) = r_dynamic_[i];
+  r_ = r;
   EkfBase::update(z_m, u);
-  if (is_debug_)
-  {
-    geometry_msgs::Point measure_data;
-    measure_data.x = z[0];
-    measure_data.y = z[1];
-    measure_data.z = z[2];
-    measure_pub_.publish(measure_data);
-  }
 }
 
 void LinearKf::getState(double* x) const

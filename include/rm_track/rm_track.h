@@ -18,13 +18,11 @@ public:
   void run();
 
 private:
-  Buffer buffer_;
+  void updateTrackerState();
+  std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
   std::vector<LogicFilterBase*> logic_filters_;
-  std::vector<LogicSelectorBase> logic_selectors_;
-  LinearKf predictor_;
-  bool update_flag_ = false;
+  std::vector<LogicSelectorBase*> logic_selectors_;
   tf2_ros::Buffer* tf_buffer_;
-  ros::Time last_predict_time_;
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
   ros::Publisher track_pub_;
