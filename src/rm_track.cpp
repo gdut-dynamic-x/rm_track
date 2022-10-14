@@ -49,9 +49,9 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   predictor.initStaticConfig(linear_kf_nh);
 
   apriltag_receiver_ =
-      std::make_shared<AprilTagReceiver>(nh, id2trackers_, max_match_distance, tf_buffer_, "/tag_detections");
+      std::make_shared<AprilTagReceiver>(nh, id2trackers_, mutex_, max_match_distance, tf_buffer_, "/tag_detections");
   rm_detection_receiver_ =
-      std::make_shared<RmDetectionReceiver>(nh, id2trackers_, max_match_distance, tf_buffer_, "/detection");
+      std::make_shared<RmDetectionReceiver>(nh, id2trackers_, mutex_, max_match_distance, tf_buffer_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
 }
 
@@ -72,6 +72,7 @@ void RmTrack::updateTrackerState()
 
 void RmTrack::run()
 {
+  std::lock_guard<std::mutex> guard(mutex_);
   updateTrackerState();
   Tracker* selected_tracker = nullptr;
   for (auto& filter : logic_filters_)

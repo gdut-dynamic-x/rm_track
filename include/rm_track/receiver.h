@@ -19,9 +19,10 @@ template <class MsgType>
 class ReceiverBase
 {
 public:
-  ReceiverBase(ros::NodeHandle& nh, std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers,
+  ReceiverBase(ros::NodeHandle& nh, std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers, std::mutex& mutex,
                double max_match_distance, tf2_ros::Buffer* tf_buffer, std::string topic)
     : id2trackers_(id2trackers)
+    , mutex_(mutex)
     , max_match_distance_(max_match_distance)
     , tf_buffer_(tf_buffer)
     , tf_filter_(msg_sub_, *tf_buffer_, "odom", 10, nullptr)
@@ -65,6 +66,8 @@ protected:
   double max_storage_time_, max_lost_time_;
   double max_match_distance_;
 
+  std::mutex& mutex_;
+
 private:
   virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg) = 0;
 
@@ -76,8 +79,8 @@ class RmDetectionReceiver : public ReceiverBase<rm_msgs::TargetDetectionArray>
 {
 public:
   RmDetectionReceiver(ros::NodeHandle& nh, std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers,
-                      double max_match_distance, tf2_ros::Buffer* tf_buffer, std::string topic)
-    : ReceiverBase(nh, id2trackers, max_match_distance, tf_buffer, topic), tf_listener(*tf_buffer_)
+                      std::mutex& mutex, double max_match_distance, tf2_ros::Buffer* tf_buffer, std::string topic)
+    : ReceiverBase(nh, id2trackers, mutex, max_match_distance, tf_buffer, topic), tf_listener(*tf_buffer_)
   {
   }
 
@@ -85,6 +88,7 @@ private:
   tf2_ros::TransformListener tf_listener;
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
+    std::lock_guard<std::mutex> guard(mutex_);
     TargetsStamp targets_stamp;
     targets_stamp.stamp = msg->header.stamp;
     for (const auto& detection : msg->detections)

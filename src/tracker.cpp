@@ -61,6 +61,8 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
 }
 void Tracker::updateTrackerState()
 {
+  if (target_cache_.empty())
+    return;
   if ((ros::Time::now() - target_cache_.back().stamp).toSec() > max_lost_time_)
     state_ = LOST;
   if (state_ == NOT_SELECTABLE)
