@@ -61,9 +61,9 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   marker_targets_pos_.scale.x = 0.1;
   marker_targets_pos_.scale.y = 0.1;
   marker_targets_pos_.scale.z = 0.1;
-  marker_targets_pos_.lifetime = ros::Duration(1);
-  marker_targets_pos_.color.r = 1.0;
-  marker_targets_pos_.color.g = 0.0;
+  marker_targets_pos_.lifetime = ros::Duration(0.5);
+  marker_targets_pos_.color.r = 0.0;
+  marker_targets_pos_.color.g = 1.0;
   marker_targets_pos_.color.b = 0.0;
   marker_targets_pos_.color.a = 1.0;
 
@@ -72,10 +72,12 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
 void RmTrack::updateTrackerState()
 {
+  marker_targets_pos_.points.clear();
   for (auto& trackers : id2trackers_)
   {
     for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
     {
+      it->updateMarker(marker_targets_pos_);
       it->updateTrackerState();
       if (it->target_cache_.empty())
         it = trackers.second->trackers_.erase(it);

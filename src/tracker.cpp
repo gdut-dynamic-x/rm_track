@@ -77,6 +77,18 @@ void Tracker::updateTrackerState()
       break;
   }
 }
+
+void Tracker::updateMarker(visualization_msgs::Marker& marker)
+{
+  geometry_msgs::Point target_pos;
+  double x[6];
+  getTargetState(x);
+  target_pos.x = x[0];
+  target_pos.y = x[2];
+  target_pos.z = x[4];
+  marker.points.push_back(target_pos);
+}
+
 void Trackers::addTracker(ros::Time stamp, rm_track::Target& target)
 {
   TargetStamp target_stamp{ .stamp = stamp, .target = target };

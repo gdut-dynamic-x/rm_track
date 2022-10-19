@@ -5,6 +5,7 @@
 #pragma once
 #include <geometry_msgs/Pose.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <visualization_msgs/Marker.h>
 #include "ekf/linear_kf.h"
 
 namespace rm_track
@@ -80,6 +81,7 @@ public:
           rm_track::TargetStamp& target_stamp, double* initial_velocity);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
+  void updateMarker(visualization_msgs::Marker& marker);
   void getTargetState(double* x)
   {
     predictor_.getState(x);
