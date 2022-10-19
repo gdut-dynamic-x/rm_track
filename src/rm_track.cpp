@@ -53,31 +53,17 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   rm_detection_receiver_ =
       std::make_shared<RmDetectionReceiver>(nh, id2trackers_, mutex_, max_match_distance, tf_buffer_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
-
-  marker_targets_pos_.header.frame_id = "odom";
-  marker_targets_pos_.ns = "position";
-  marker_targets_pos_.action = visualization_msgs::Marker::ADD;
-  marker_targets_pos_.type = visualization_msgs::Marker::SPHERE_LIST;
-  marker_targets_pos_.scale.x = 0.1;
-  marker_targets_pos_.scale.y = 0.1;
-  marker_targets_pos_.scale.z = 0.1;
-  marker_targets_pos_.lifetime = ros::Duration(0.5);
-  marker_targets_pos_.color.r = 0.0;
-  marker_targets_pos_.color.g = 1.0;
-  marker_targets_pos_.color.b = 0.0;
-  marker_targets_pos_.color.a = 1.0;
-
-  marker_targets_pub_.reset(new realtime_tools::RealtimePublisher<visualization_msgs::Marker>(nh, "targets_pos", 10));
+  marker_targets_pub_ = nh.advertise<visualization_msgs::MarkerArray>("targets", 10);
 }
 
 void RmTrack::updateTrackerState()
 {
-  marker_targets_pos_.points.clear();
+  visualization_msgs::MarkerArray marker_array;
   for (auto& trackers : id2trackers_)
   {
     for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
     {
-      it->updateMarker(marker_targets_pos_);
+      it->updateMarker(marker_array);
       it->updateTrackerState();
       if (it->target_cache_.empty())
         it = trackers.second->trackers_.erase(it);
@@ -85,11 +71,7 @@ void RmTrack::updateTrackerState()
         it++;
     }
   }
-  if (marker_targets_pub_->trylock())
-  {
-    marker_targets_pub_->msg_ = marker_targets_pos_;
-    marker_targets_pub_->unlockAndPublish();
-  }
+  marker_targets_pub_.publish(marker_array);
 }
 
 void RmTrack::run()

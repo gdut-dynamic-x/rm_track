@@ -25,6 +25,21 @@ Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double
   last_predict_time_ = target_stamp.stamp;
   state_ = APPEAR;
   target_matcher_.setMaxMatchDistance(max_match_distance_);
+
+  marker_pos_.header.frame_id = "odom";
+  marker_pos_.ns = "position";
+  marker_pos_.action = visualization_msgs::Marker::ADD;
+  marker_pos_.type = visualization_msgs::Marker::SPHERE;
+  marker_pos_.scale.x = 0.1;
+  marker_pos_.scale.y = 0.1;
+  marker_pos_.scale.z = 0.1;
+  marker_pos_.lifetime = ros::Duration(0.5);
+  marker_pos_.color.a = 1.0;
+  marker_vel_ = marker_pos_;
+  marker_vel_.ns = "velocity";
+  marker_vel_.type = visualization_msgs::Marker::ARROW;
+  marker_vel_.scale.x = 0.03;
+  marker_vel_.scale.y = 0.05;
 }
 
 void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
@@ -78,7 +93,7 @@ void Tracker::updateTrackerState()
   }
 }
 
-void Tracker::updateMarker(visualization_msgs::Marker& marker)
+void Tracker::updateMarker(visualization_msgs::MarkerArray& marker_array)
 {
   geometry_msgs::Point target_pos;
   double x[6];
@@ -86,7 +101,34 @@ void Tracker::updateMarker(visualization_msgs::Marker& marker)
   target_pos.x = x[0];
   target_pos.y = x[2];
   target_pos.z = x[4];
-  marker.points.push_back(target_pos);
+  marker_pos_.pose.position = target_pos;
+  if (state_ == APPEAR)
+  {
+    marker_pos_.color.r = marker_pos_.color.g = 0.0;
+    marker_pos_.color.b = 1.0;
+  }
+  else if (state_ == EXIST)
+  {
+    marker_pos_.color.r = marker_pos_.color.b = 0.0;
+    marker_pos_.color.g = 1.0;
+  }
+  else
+  {
+    marker_pos_.color.g = marker_pos_.color.b = 0.0;
+    marker_pos_.color.r = 1.0;
+  }
+  marker_array.markers.push_back(marker_pos_);
+  if (state_ != LOST)
+  {
+    marker_vel_.points.clear();
+    marker_vel_.points.push_back(target_pos);
+    geometry_msgs::Point arrow_end = target_pos;
+    arrow_end.x += x[1];
+    arrow_end.y += x[3];
+    arrow_end.z += x[5];
+    marker_vel_.points.push_back(arrow_end);
+    marker_array.markers.push_back(marker_vel_);
+  }
 }
 
 void Trackers::addTracker(ros::Time stamp, rm_track::Target& target)
