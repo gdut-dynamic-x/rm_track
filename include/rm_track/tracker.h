@@ -81,7 +81,7 @@ public:
           rm_track::TargetStamp& target_stamp, double* initial_velocity);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
-  void updateMarker(visualization_msgs::MarkerArray& marker_array);
+  void updateMarker(visualization_msgs::MarkerArray& marker_array, int marker_id);
   void getTargetState(double* x)
   {
     predictor_.getState(x);

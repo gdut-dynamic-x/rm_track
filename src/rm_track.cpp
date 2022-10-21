@@ -59,11 +59,12 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 void RmTrack::updateTrackerState()
 {
   visualization_msgs::MarkerArray marker_array;
+  int marker_id = 0;
   for (auto& trackers : id2trackers_)
   {
-    for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
+    for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end(); marker_id++)
     {
-      it->updateMarker(marker_array);
+      it->updateMarker(marker_array, marker_id);
       it->updateTrackerState();
       if (it->target_cache_.empty())
         it = trackers.second->trackers_.erase(it);
