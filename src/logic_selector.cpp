@@ -6,6 +6,26 @@
 
 namespace rm_track
 {
+bool ClosestToLightCenterSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
+{
+  double min_distance_from_light_center = DBL_MAX;
+  bool has_target = false;
+  for (auto& trackers : id2trackers)
+  {
+    for (auto& tracker : trackers.second->trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST &&
+          tracker.target_cache_.back().target.confidence < min_distance_from_light_center)
+      {
+        selected_tracker_ = &tracker;
+        min_distance_from_light_center = tracker.target_cache_.back().target.confidence;
+        has_target = true;
+      }
+    }
+  }
+  return has_target;
+}
+
 bool RandomArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
   if (!id2trackers.empty())

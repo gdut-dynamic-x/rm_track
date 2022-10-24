@@ -33,6 +33,16 @@ protected:
   static bool has_last_armor_;
 };
 
+class ClosestToLightCenterSelector : public LogicSelectorBase
+{
+public:
+  ClosestToLightCenterSelector()
+  {
+    ROS_INFO("Add closest_to_light_center_selector.");
+  }
+  bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
+};
+
 class RandomArmorSelector : public LogicSelectorBase
 {
 public:
