@@ -59,6 +59,9 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 void RmTrack::updateTrackerState()
 {
   visualization_msgs::MarkerArray marker_array;
+  visualization_msgs::Marker delete_all;
+  delete_all.action = visualization_msgs::Marker::DELETEALL;
+  marker_array.markers.push_back(delete_all);
   int marker_id = 0;
   for (auto& trackers : id2trackers_)
   {

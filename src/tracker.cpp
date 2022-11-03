@@ -33,7 +33,6 @@ Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double
   marker_pos_.scale.x = 0.1;
   marker_pos_.scale.y = 0.1;
   marker_pos_.scale.z = 0.1;
-  marker_pos_.lifetime = ros::Duration(0.1);
   marker_pos_.color.a = 1.0;
   marker_vel_ = marker_pos_;
   marker_vel_.ns = "velocity";
