@@ -94,5 +94,6 @@ void LinearKf::getState(double* x) const
 
 double LinearKf::q_dynamic_[3];
 double LinearKf::r_dynamic_[3];
+bool LinearKf::dynamic_reconfig_initialized_ = false;
 dynamic_reconfigure::Server<rm_track::EKfConfig>* LinearKf::reconf_server_;
 }  // namespace rm_track
