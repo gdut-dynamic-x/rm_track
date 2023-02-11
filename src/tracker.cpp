@@ -55,7 +55,11 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
     z[1] = match_target_it->transform.getOrigin().y();
     z[2] = match_target_it->transform.getOrigin().z();
     predictor_.update(z);
-    state_ = EXIST;
+    if ((state_ == APPEAR || state_ == NEW_ARMOR) &&
+        (ros::Time::now() - target_cache_.front().stamp).toSec() < max_new_armor_time_)
+      state_ = NEW_ARMOR;
+    else
+      state_ = EXIST;
     targets_stamp.targets.erase(match_target_it);
   }
 }
@@ -67,6 +71,8 @@ void Tracker::updateTrackerState()
     state_ = LOST;
   if (state_ == NOT_SELECTABLE)
     state_ = EXIST;
+  //  if (state_ == NEW_ARMOR && (ros::Time::now() - target_cache_.front().stamp).toSec() > max_new_armor_time_)
+  //    state_ = EXIST;
   for (auto it = target_cache_.begin(); it != target_cache_.end();)
   {
     if ((ros::Time::now() - it->stamp).toSec() > max_storage_time_)

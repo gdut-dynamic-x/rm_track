@@ -71,6 +71,7 @@ public:
   enum STATE
   {
     APPEAR,
+    NEW_ARMOR,
     EXIST,
     NOT_SELECTABLE,
     LOST
@@ -98,6 +99,7 @@ private:
   TargetMatcher target_matcher_;
   double max_match_distance_ = 0.2;
   double max_lost_time_;
+  double max_new_armor_time_ = 1;  /// 此参数未加入参数文件中
   double max_storage_time_;
 };
 

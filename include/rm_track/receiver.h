@@ -99,7 +99,7 @@ private:
       pose_stamped.pose = detection.pose;
       try
       {
-        tf_buffer_->transform(pose_stamped, pose_stamped, "odom");
+        tf_buffer_->transform(pose_stamped, pose_stamped, "pitch");
       }
       catch (tf2::TransformException& ex)
       {

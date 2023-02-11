@@ -76,4 +76,18 @@ public:
   }
   bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };
+
+class NewArmorSelector : public LogicSelectorBase
+{
+public:
+  NewArmorSelector(double max_match_distance)
+  {
+    target_matcher_.setMaxMatchDistance(max_match_distance);
+    ROS_INFO("Add new_armor_selector");
+  }
+  bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
+
+private:
+  TargetMatcher target_matcher_;
+};
 }  // namespace rm_track

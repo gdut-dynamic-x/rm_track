@@ -32,12 +32,21 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   if (nh.getParam("selectors", selectors))
     for (int i = 0; i < selectors.size(); ++i)
     {
-      if (selectors[i] == "last_armor")
-        logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
-      else if (selectors[i] == "same_id_armor")
-        logic_selectors_.push_back(new SameIDArmorSelector());
-      else if (selectors[i] == "random_armor")
-        logic_selectors_.push_back(new RandomArmorSelector());
+      //      if (selectors[i] == "last_armor")
+      //        logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
+      //      else if (selectors[i] == "same_id_armor")
+      //        logic_selectors_.push_back(new SameIDArmorSelector());
+      //      else if (selectors[i] == "random_armor")
+      //        logic_selectors_.push_back(new RandomArmorSelector());
+      if (selectors[i] == "new_armor")
+      {
+        double new_armor_distance = 0.2;
+        logic_selectors_.push_back(new NewArmorSelector(new_armor_distance));
+      }
+      //      else if (selectors[i] == "random_armor")
+      //        logic_selectors_.push_back(new RandomArmorSelector());
+      else if (selectors[i] == "closet_to_light_center")
+        logic_selectors_.push_back(new ClosestToLightCenterSelector());
       else
         ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
@@ -77,14 +86,22 @@ void RmTrack::run()
   Tracker* selected_tracker = nullptr;
   for (auto& filter : logic_filters_)
     filter->input(id2trackers_);
-  for (auto& selector : logic_selectors_)
+  if (logic_selectors_[0]->input(id2trackers_))
   {
-    if (selector->input(id2trackers_))
-    {
-      selected_tracker = selector->output();
-      break;
-    }
+    selected_tracker = logic_selectors_[0]->output();
   }
+  if (logic_selectors_[1]->input(id2trackers_))
+  {
+    selected_tracker = logic_selectors_[1]->output();
+  }
+  //  for (auto& selector : logic_selectors_)
+  //  {
+  //    if (selector->input(id2trackers_))
+  //    {
+  //      selected_tracker = selector->output();
+  //      break;
+  //    }
+  //  }
   double x[6]{ 0, 0, 0, 0, 0, 0 };
   ros::Time now = ros::Time::now();
   int target_id;
