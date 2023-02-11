@@ -30,26 +30,32 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
   XmlRpc::XmlRpcValue selectors;
   if (nh.getParam("selectors", selectors))
+  {
     for (int i = 0; i < selectors.size(); ++i)
     {
-      //      if (selectors[i] == "last_armor")
-      //        logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
-      //      else if (selectors[i] == "same_id_armor")
-      //        logic_selectors_.push_back(new SameIDArmorSelector());
-      //      else if (selectors[i] == "random_armor")
-      //        logic_selectors_.push_back(new RandomArmorSelector());
       if (selectors[i] == "new_armor")
       {
-        double new_armor_distance = 0.2;
+        double new_armor_distance = 0.01;
         logic_selectors_.push_back(new NewArmorSelector(new_armor_distance));
       }
-      //      else if (selectors[i] == "random_armor")
-      //        logic_selectors_.push_back(new RandomArmorSelector());
-      else if (selectors[i] == "closest_to_image_center")
-        logic_selectors_.push_back(new ClosestToImageCenterSelector());
-      else
-        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
+      //      else
+      //        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
+    for (int i = 0; i < selectors.size(); ++i)
+    {
+      if (selectors[i] == "closest_to_image_center")
+        logic_selectors_.push_back(new ClosestToImageCenterSelector());
+      //      else
+      //        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
+    }
+    for (int i = 0; i < selectors.size(); ++i)
+    {
+      if (selectors[i] == "last_armor")
+        logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
+      //      else
+      //        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
+    }
+  }
   else
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
@@ -97,19 +103,17 @@ void RmTrack::run()
   if (logic_selectors_[0]->input(id2trackers_))
   {
     selected_tracker = logic_selectors_[0]->output();
+    double x_new[6];
+    selected_tracker->getTargetState(x_new);
   }
-  if (logic_selectors_[1]->input(id2trackers_))
+  else if (logic_selectors_[2]->input(id2trackers_))
+  {
+    selected_tracker = logic_selectors_[2]->output();
+  }
+  else if (logic_selectors_[1]->input(id2trackers_))
   {
     selected_tracker = logic_selectors_[1]->output();
   }
-  //  for (auto& selector : logic_selectors_)
-  //  {
-  //    if (selector->input(id2trackers_))
-  //    {
-  //      selected_tracker = selector->output();
-  //      break;
-  //    }
-  //  }
   double x[6]{ 0, 0, 0, 0, 0, 0 };
   double target_accel_length = 0;
   ros::Time now = ros::Time::now();
