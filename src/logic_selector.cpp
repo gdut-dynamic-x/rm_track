@@ -109,51 +109,49 @@ bool NewArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Track
     return false;
   else
   {
-    std::vector<Tracker> new_armor_trackers{};
-    std::vector<Tracker> exist_armor{};
-    for (auto tracker : id2trackers.at(last_armor_.id)->trackers_)
+    std::vector<Tracker*> new_armor_trackers;
+    std::vector<Tracker> exist_armor;
+    for (auto& tracker : id2trackers.at(last_armor_.id)->trackers_)
     {
       if (tracker.state_ == Tracker::NEW_ARMOR)
-        new_armor_trackers.push_back(tracker);
+        new_armor_trackers.push_back(&tracker);
       else if (tracker.state_ == Tracker::EXIST)
         exist_armor.push_back(tracker);
     }
-    if (exist_armor.empty())
-      return false;
-
-    //    ROS_INFO("total size = %d\n", id2trackers.at(last_armor_.id)->trackers_.size());
-    //    ROS_INFO("new_armor size = %d\n", new_armor_trackers.size());
-    //    ROS_INFO("exist_armor size = %d\n", exist_armor.size());
+    if (exist_armor.empty() && !new_armor_trackers.empty())
+    {
+      selected_tracker_ = new_armor_trackers[0];
+      double x[6];
+      selected_tracker_->getTargetState(x);
+      last_armor_ = Armor{ .id = selected_tracker_->target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
+      has_last_armor_ = true;
+      return true;
+    }
 
     if (!new_armor_trackers.empty())
       for (auto& new_armor : new_armor_trackers)
       {
         double x_new[6];
         bool is_erase = false;
-        new_armor.getTargetState(x_new);
+        new_armor->getTargetState(x_new);
         target_matcher_.setTargetPosition(tf2::Vector3(x_new[0], x_new[2], x_new[4]));
         for (auto& tracker : exist_armor)
         {
           double x[6];
           tracker.getTargetState(x);
-          //          ROS_INFO("distance is %lf\n",
-          //                   tf2::Vector3(x_new[0], x_new[2], x_new[4]).distance(tf2::Vector3(x[0], x[2], x[4])));
-          //          ROS_INFO("x_new is %lf %lf %lf\n", x_new[0], x_new[2], x_new[4]);
           if (target_matcher_.input(tf2::Vector3(x[0], x[2], x[4])))
           {
-            //            ROS_INFO("erasing");
             is_erase = true;
             break;
           }
         }
         if (!is_erase)
         {
-          selected_tracker_ = &new_armor;
+          selected_tracker_ = new_armor;
           double x[6];
           selected_tracker_->getTargetState(x);
           last_armor_ = Armor{ .id = selected_tracker_->target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
           has_last_armor_ = true;
-          ROS_INFO("USE NEW");
           return true;
         }
       }
