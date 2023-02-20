@@ -19,6 +19,8 @@ public:
 
 private:
   void updateTrackerState();
+  bool selectAttackMode(Tracker* tracker);
+
   std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
   std::vector<LogicFilterBase*> logic_filters_;
   std::vector<LogicSelectorBase*> logic_selectors_;

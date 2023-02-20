@@ -7,11 +7,12 @@
 namespace rm_track
 {
 Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time,
-                 rm_track::TargetStamp& target_stamp, double* initial_velocity, int num_data)
+                 double max_new_armor_time, rm_track::TargetStamp& target_stamp, double* initial_velocity, int num_data)
   : target_id_(id)
   , max_match_distance_(max_match_distance)
   , max_lost_time_(max_lost_time)
   , max_storage_time_(max_storage_time)
+  , max_new_armor_time_(max_new_armor_time)
 {
   accel_ = std::make_shared<Vector3WithFilter<double>>(num_data);
 
@@ -100,8 +101,6 @@ void Tracker::updateTrackerState()
     state_ = LOST;
   if (state_ == NOT_SELECTABLE)
     state_ = EXIST;
-  //  if (state_ == NEW_ARMOR && (ros::Time::now() - target_cache_.front().stamp).toSec() > max_new_armor_time_)
-  //    state_ = EXIST;
   for (auto it = target_cache_.begin(); it != target_cache_.end();)
   {
     if ((ros::Time::now() - it->stamp).toSec() > max_storage_time_)
@@ -168,9 +167,44 @@ void Trackers::addTracker(ros::Time stamp, rm_track::Target& target)
     v0[1] = x[3];
     v0[2] = x[5];
   }
-  trackers_.push_back(Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, target_stamp, v0, num_data_));
+  trackers_.push_back(
+      Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, max_new_armor_time_, target_stamp, v0));
 }
 
+bool Trackers::updateState(Tracker* tracker)
+{
+  bool is_satisfied = false;
+  bool reconfirmation = false;
+  ros::Time current_time = ros::Time::now();
+  if (current_time - last_satisfied_time_ > max_judge_period_)
+  {
+    state_ = Trackers::PRECISE_AUTO_AIM;
+    reconfirmation = true;
+  }
+
+  //  double current_state[6];      /// 这个在计算target到odom的yaw轴变化时使用
+  //  tracker->getTargetState(current_state);
+  double current_yaw =
+      tracker->target_cache_.back().target.target2camera_rpy[2];  /// 方案一：使用target到相机坐标系的yaw来判断
+  double current_yaw_diff = current_yaw - last_target_yaw_;
+  if (abs(current_yaw) > max_follow_angle_)
+  {
+    last_satisfied_time_ = current_time;
+    //    count_++;
+    if (!reconfirmation && std::signbit(current_yaw_diff) == std::signbit(last_target_yaw_diff_))
+    {
+      state_ = IMPRECISE_AUTO_AIM;
+      is_satisfied = true;
+    }
+    else
+    {
+      is_satisfied = false;
+    }
+  }
+  last_target_yaw_ = current_yaw;
+  last_target_yaw_diff_ = current_yaw_diff;
+  return is_satisfied;
+}
 int Trackers::getExistTrackerNumber()
 {
   int num = 0;
