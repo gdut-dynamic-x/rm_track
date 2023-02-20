@@ -31,7 +31,7 @@ void HeightFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2
   {
     for (auto& tracker : trackers.second->trackers_)
     {
-      if (tracker.state_ == Tracker::EXIST)
+      if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)
       {
         tf2::Transform odom2target = tracker.target_cache_.back().target.transform;
         geometry_msgs::TransformStamped odom2base;
@@ -63,7 +63,7 @@ void DistanceFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& i
   {
     for (auto& tracker : trackers.second->trackers_)
     {
-      if (tracker.state_ == Tracker::EXIST)
+      if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)
       {
         tf2::Transform transform = tracker.target_cache_.back().target.transform;
         geometry_msgs::Pose pose;
@@ -92,6 +92,25 @@ ConfidenceFilter::ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value) : Logic
 }
 void ConfidenceFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
+}
+
+PitchFilter::PitchFilter(const XmlRpc::XmlRpcValue& rpc_value) : LogicFilterBase(rpc_value)
+{
+  ROS_INFO("Pitch filter add.");
+}
+
+void PitchFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
+{
+  for (auto& trackers : id2trackers)
+  {
+    if (trackers.second->state_ == Trackers::IMPRECISE_AUTO_AIM)
+      for (auto& tracker : trackers.second->trackers_)
+        if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)
+        {
+          if (abs(tracker.target_cache_.back().target.target2camera_rpy[1]) >= basic_range_[1])
+            tracker.state_ = Tracker::NOT_SELECTABLE;
+        }
+  }
 }
 
 }  // namespace rm_track

@@ -14,6 +14,7 @@ struct Target
   int id;
   tf2::Transform transform;
   double confidence;
+  std::vector<double> target2camera_rpy;
 };
 
 struct TargetStamp
@@ -77,7 +78,7 @@ public:
     LOST
   } state_;
 
-  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time,
+  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time, double max_new_armor_time,
           rm_track::TargetStamp& target_stamp, double* initial_velocity);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
@@ -99,20 +100,32 @@ private:
   TargetMatcher target_matcher_;
   double max_match_distance_ = 0.2;
   double max_lost_time_;
-  double max_new_armor_time_ = 0.2;  /// 此参数未加入参数文件中
+  double max_new_armor_time_;  /// 0.1的参数比较适合于高速小陀螺洒水
   double max_storage_time_;
 };
 
 class Trackers
 {
 public:
-  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time)
+  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, double max_new_armor_time,
+           double max_judge_period, double max_follow_angle)
     : id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
     , max_storage_time_(max_storage_time)
+    , max_new_armor_time_(max_new_armor_time)
+    , state_(Trackers::PRECISE_AUTO_AIM)
+    , last_satisfied_time_(ros::Time::now())
+    , max_follow_angle_(max_follow_angle)
+    , max_judge_period_(max_judge_period)
   {
   }
+  enum STATE
+  {
+    PRECISE_AUTO_AIM,
+    IMPRECISE_AUTO_AIM,
+  } state_;
+
   void updateTracker(TargetsStamp& target_stamps)
   {
     for (auto& tracker : trackers_)
@@ -120,6 +133,7 @@ public:
   }
   void addTracker(ros::Time stamp, Target& target);
   int getExistTrackerNumber();
+  bool updateState(Tracker* tracker);
   std::vector<Tracker> getExistTracker();
   std::vector<Tracker> trackers_;
 
@@ -128,6 +142,13 @@ private:
   double max_match_distance_;
   double max_lost_time_;
   double max_storage_time_;
+  double max_new_armor_time_;
+
+  double last_target_yaw_ = 0.;
+  double last_target_yaw_diff_ = 0.;
+  ros::Time last_satisfied_time_;
+  double max_follow_angle_;  /// 如果超过了这个最大跟随角度，则代表目标速度过快，进入小陀螺模式，改参数还未加入参数文件
+  ros::Duration max_judge_period_;  /// 最大判定时间段：如果超出这个时间说明并不是在判定新数据
 };
 
 }  // namespace rm_track

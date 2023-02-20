@@ -29,6 +29,10 @@ public:
   {
     nh.param("max_storage_time", max_storage_time_, 5.0);
     nh.param("max_lost_time", max_lost_time_, 0.1);
+    nh.param("max_new_armor_time", max_new_armor_time_, 0.2);  /// 默认参数待修改
+    nh.param("max_judge_period", max_judge_period_, 0.2);      /// 默认参数待修改
+    nh.param("max_follow_angle", max_follow_angle_, 0.4);      /// 默认参数待修改
+
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
@@ -37,7 +41,8 @@ protected:
   std::shared_ptr<Trackers>& allocateTrackers(int id)
   {
     id2trackers_.insert(
-        std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_, max_storage_time_)));
+        std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_, max_storage_time_,
+                                                      max_new_armor_time_, max_judge_period_, max_follow_angle_)));
     return id2trackers_[id];
   }
   void addTracker(ros::Time stamp, Target& target)
@@ -61,10 +66,24 @@ protected:
       for (auto& target : targets_stamp.targets)
         addTracker(targets_stamp.stamp, target);
   }
+
+  std::vector<double> getRPY(tf2::Transform& transform)
+  {
+    tf2::Quaternion quat = transform.getRotation();
+    tf2::Matrix3x3 matrix3x3(quat);
+    double roll, pitch, yaw;
+    matrix3x3.getRPY(roll, pitch, yaw);
+    return { roll, pitch, yaw };
+  }
+
   tf2_ros::Buffer* tf_buffer_;
   std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers_;
   double max_storage_time_, max_lost_time_;
   double max_match_distance_;
+  double max_new_armor_time_;
+
+  double max_judge_period_;
+  double max_follow_angle_;
 
   std::mutex& mutex_;
 
@@ -97,6 +116,12 @@ private:
       pose_stamped.header.frame_id = msg->header.frame_id;
       pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose;
+
+      tf2::Transform target2camera_tran;
+      std::vector<double> target2camera_rpy;
+      tf2::fromMsg(detection.pose, target2camera_tran);
+      target2camera_rpy = getRPY(target2camera_tran);
+
       try
       {
         tf_buffer_->transform(pose_stamped, pose_stamped, "odom");
@@ -107,8 +132,10 @@ private:
       }
       tf2::Transform transform;
       tf2::fromMsg(pose_stamped.pose, transform);
-      targets_stamp.targets.push_back(
-          Target{ .id = detection.id, .transform = transform, .confidence = detection.confidence });
+      targets_stamp.targets.push_back(Target{ .id = detection.id,
+                                              .transform = transform,
+                                              .confidence = detection.confidence,
+                                              .target2camera_rpy = target2camera_rpy });
     }
     updateTracker(targets_stamp);
   }

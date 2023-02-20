@@ -22,6 +22,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
         logic_filters_.push_back(new DistanceFilter(filters[i], tf_buffer_));
       else if (filters[i]["type"] == "confidence_filter")
         logic_filters_.push_back(new ConfidenceFilter(filters[i]));
+      else if (filters[i]["type"] == "pitch_filter")
+        logic_filters_.push_back(new PitchFilter(filters[i]));
       else
         ROS_ERROR("Filter '%s' does not exist", filters[i].toXml().c_str());
     }
@@ -38,22 +40,16 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
         double new_armor_distance = 0.01;
         logic_selectors_.push_back(new NewArmorSelector(new_armor_distance));
       }
-      //      else
-      //        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
     for (int i = 0; i < selectors.size(); ++i)
     {
       if (selectors[i] == "closet_to_light_center")
         logic_selectors_.push_back(new ClosestToLightCenterSelector());
-      //      else
-      //        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
     for (int i = 0; i < selectors.size(); ++i)
     {
       if (selectors[i] == "last_armor")
         logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
-      //      else
-      //        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
   }
   else
@@ -85,6 +81,12 @@ void RmTrack::updateTrackerState()
   }
 }
 
+bool RmTrack::selectAttackMode(Tracker* tracker)
+{
+  std::shared_ptr<Trackers> trackers = id2trackers_.find(tracker->target_id_)->second;
+  return trackers->updateState(tracker);
+}
+
 void RmTrack::run()
 {
   std::lock_guard<std::mutex> guard(mutex_);
@@ -111,8 +113,22 @@ void RmTrack::run()
   int target_id;
   if (selected_tracker)
   {
-    selected_tracker->predict(x, now);
     target_id = selected_tracker->target_id_;
+    if (selectAttackMode(selected_tracker))
+    {
+      rm_msgs::TrackData track_data;
+      track_data.header.frame_id = "odom";
+      track_data.header.stamp = now;
+      track_data.id = target_id;
+      track_data.target_pos.x = x[0];
+      track_data.target_pos.y = x[2];
+      track_data.target_pos.z = x[4];
+      track_data.target_vel.x = 0.;
+      track_data.target_vel.y = 0.;
+      track_data.target_vel.z = 0.;
+      return;
+    }
+    selected_tracker->predict(x, now);
   }
   else
     target_id = 0;
