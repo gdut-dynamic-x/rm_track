@@ -117,11 +117,13 @@ void Tracker::updateMarker(visualization_msgs::MarkerArray& marker_array, int ma
     marker_pos_.color.r = marker_pos_.color.b = 0.0;
     marker_pos_.color.g = 1.0;
   }
-  else
+  else if (state_ == NOT_SELECTABLE)
   {
     marker_pos_.color.g = marker_pos_.color.b = 0.0;
     marker_pos_.color.r = 1.0;
   }
+  else
+    return;
   marker_vel_.points.clear();
   marker_vel_.id = marker_id;
   marker_vel_.pose.orientation = quaternion;
@@ -131,11 +133,6 @@ void Tracker::updateMarker(visualization_msgs::MarkerArray& marker_array, int ma
   arrow_end.y += x[3] * 0.5;
   arrow_end.z += x[5] * 0.5;
   marker_vel_.points.push_back(arrow_end);
-  if (state_ == LOST)
-  {
-    marker_pos_.action = visualization_msgs::Marker::DELETE;
-    marker_vel_.action = visualization_msgs::Marker::DELETE;
-  }
   marker_array.markers.push_back(marker_pos_);
   marker_array.markers.push_back(marker_vel_);
 }
