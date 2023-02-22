@@ -8,7 +8,6 @@
 #include "logic_selector.h"
 #include "ekf/linear_kf.h"
 #include "ekf/armor_ekf.h"
-#include <realtime_tools/realtime_publisher.h>
 
 namespace rm_track
 {
