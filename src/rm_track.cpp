@@ -38,8 +38,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
         logic_selectors_.push_back(new SameIDArmorSelector());
       else if (selectors[i] == "random_armor")
         logic_selectors_.push_back(new RandomArmorSelector());
-      else if (selectors[i] == "closest_to_light_center")
-        logic_selectors_.push_back(new ClosestToLightCenterSelector());
+      else if (selectors[i] == "closest_to_image_center")
+        logic_selectors_.push_back(new ClosestToImageCenterSelector());
       else
         ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }

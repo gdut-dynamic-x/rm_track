@@ -33,12 +33,12 @@ protected:
   static bool has_last_armor_;
 };
 
-class ClosestToLightCenterSelector : public LogicSelectorBase
+class ClosestToImageCenterSelector : public LogicSelectorBase
 {
 public:
-  ClosestToLightCenterSelector()
+  ClosestToImageCenterSelector()
   {
-    ROS_INFO("Add closest_to_light_center_selector.");
+    ROS_INFO("Add closest_to_image_center_selector.");
   }
   bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };

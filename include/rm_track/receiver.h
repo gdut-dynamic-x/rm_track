@@ -107,8 +107,10 @@ private:
       }
       tf2::Transform transform;
       tf2::fromMsg(pose_stamped.pose, transform);
-      targets_stamp.targets.push_back(
-          Target{ .id = detection.id, .transform = transform, .confidence = detection.confidence });
+      targets_stamp.targets.push_back(Target{ .id = detection.id,
+                                              .transform = transform,
+                                              .confidence = detection.confidence,
+                                              .distance_to_image_center = detection.distance_to_image_center });
     }
     updateTracker(targets_stamp);
   }

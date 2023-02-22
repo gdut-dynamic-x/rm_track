@@ -6,7 +6,7 @@
 
 namespace rm_track
 {
-bool ClosestToLightCenterSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
+bool ClosestToImageCenterSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
 {
   double min_distance_from_light_center = DBL_MAX;
   bool has_target = false;
@@ -15,10 +15,10 @@ bool ClosestToLightCenterSelector::input(const std::unordered_map<int, std::shar
     for (auto& tracker : trackers.second->trackers_)
     {
       if (tracker.state_ == Tracker::EXIST &&
-          tracker.target_cache_.back().target.confidence < min_distance_from_light_center)
+          tracker.target_cache_.back().target.distance_to_image_center < min_distance_from_light_center)
       {
         selected_tracker_ = &tracker;
-        min_distance_from_light_center = tracker.target_cache_.back().target.confidence;
+        min_distance_from_light_center = tracker.target_cache_.back().target.distance_to_image_center;
         has_target = true;
       }
     }

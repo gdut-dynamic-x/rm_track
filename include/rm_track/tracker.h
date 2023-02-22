@@ -14,6 +14,7 @@ struct Target
   int id;
   tf2::Transform transform;
   double confidence;
+  double distance_to_image_center;
 };
 
 struct TargetStamp
