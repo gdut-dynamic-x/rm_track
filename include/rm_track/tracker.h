@@ -5,6 +5,7 @@
 #pragma once
 #include <geometry_msgs/Pose.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <visualization_msgs/MarkerArray.h>
 #include "ekf/linear_kf.h"
 
 namespace rm_track
@@ -80,6 +81,7 @@ public:
           rm_track::TargetStamp& target_stamp, double* initial_velocity);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
+  void updateMarker(visualization_msgs::MarkerArray& marker_array, int marker_id);
   void getTargetState(double* x)
   {
     predictor_.getState(x);
@@ -96,6 +98,9 @@ private:
   LinearKf predictor_;
   ros::Time last_predict_time_;
   TargetMatcher target_matcher_;
+
+  visualization_msgs::Marker marker_pos_;
+  visualization_msgs::Marker marker_vel_;
   double max_match_distance_ = 0.2;
   double max_lost_time_;
   double max_storage_time_;

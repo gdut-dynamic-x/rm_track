@@ -53,14 +53,21 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   rm_detection_receiver_ =
       std::make_shared<RmDetectionReceiver>(nh, id2trackers_, mutex_, max_match_distance, tf_buffer_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
+  marker_targets_pub_ = nh.advertise<visualization_msgs::MarkerArray>("targets", 10);
 }
 
 void RmTrack::updateTrackerState()
 {
+  visualization_msgs::MarkerArray marker_array;
+  visualization_msgs::Marker delete_all;
+  delete_all.action = visualization_msgs::Marker::DELETEALL;
+  marker_array.markers.push_back(delete_all);
+  int marker_id = 0;
   for (auto& trackers : id2trackers_)
   {
-    for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
+    for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end(); marker_id++)
     {
+      it->updateMarker(marker_array, marker_id);
       it->updateTrackerState();
       if (it->target_cache_.empty())
         it = trackers.second->trackers_.erase(it);
@@ -68,6 +75,7 @@ void RmTrack::updateTrackerState()
         it++;
     }
   }
+  marker_targets_pub_.publish(marker_array);
 }
 
 void RmTrack::run()

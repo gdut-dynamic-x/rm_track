@@ -26,6 +26,7 @@ private:
   std::shared_ptr<AprilTagReceiver> apriltag_receiver_;
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
   ros::Publisher track_pub_;
+  ros::Publisher marker_targets_pub_;
 
   mutable std::mutex mutex_;
 };
