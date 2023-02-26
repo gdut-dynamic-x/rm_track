@@ -29,11 +29,10 @@ public:
   {
     nh.param("max_storage_time", max_storage_time_, 5.0);
     nh.param("max_lost_time", max_lost_time_, 0.1);
-    nh.param("max_new_armor_time", max_new_armor_time_, 0.2);  /// 默认参数待修改
-    nh.param("max_judge_period", max_judge_period_, 0.2);      /// 默认参数待修改
-    nh.param("max_follow_angle", max_follow_angle_, 0.4);      /// 默认参数待修改
+    nh.param("max_new_armor_time", max_new_armor_time_, 0.12);
+    nh.param("max_judge_period", max_judge_period_, 0.1);
+    nh.param("max_follow_angle", max_follow_angle_, 0.0053);
     nh.param("num_data", num_data_, 20);
-
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
