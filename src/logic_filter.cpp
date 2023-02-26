@@ -103,13 +103,16 @@ void PitchFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2t
 {
   for (auto& trackers : id2trackers)
   {
+    trackers.second->imprecise_trackers_ = trackers.second->getExistTracker();
     if (trackers.second->state_ == Trackers::IMPRECISE_AUTO_AIM)
+    {
       for (auto& tracker : trackers.second->trackers_)
         if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)
         {
-          if (abs(tracker.target_cache_.back().target.target2camera_rpy[1]) >= basic_range_[1])
+          if (abs(tracker.target_cache_.back().target.target2camera_rpy[1]) > basic_range_[1])
             tracker.state_ = Tracker::NOT_SELECTABLE;
         }
+    }
   }
 }
 

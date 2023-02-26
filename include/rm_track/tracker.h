@@ -93,6 +93,11 @@ public:
 
   int target_id_;
   std::deque<TargetStamp> target_cache_;
+  struct TrackerYaw
+  {
+    double current_yaw_diff;
+    double last_yaw;
+  } tracker_yaw_;
 
 private:
   LinearKf predictor_;
@@ -100,7 +105,7 @@ private:
   TargetMatcher target_matcher_;
   double max_match_distance_ = 0.2;
   double max_lost_time_;
-  double max_new_armor_time_;  /// 0.1的参数比较适合于高速小陀螺洒水
+  double max_new_armor_time_;
   double max_storage_time_;
 };
 
@@ -133,9 +138,11 @@ public:
   }
   void addTracker(ros::Time stamp, Target& target);
   int getExistTrackerNumber();
-  bool updateState(Tracker* tracker);
+  void updateTrackersState();
+  bool attackModeDiscriminator();
   std::vector<Tracker> getExistTracker();
   std::vector<Tracker> trackers_;
+  std::vector<Tracker> imprecise_trackers_;
 
 private:
   int id_;
@@ -144,11 +151,13 @@ private:
   double max_storage_time_;
   double max_new_armor_time_;
 
-  double last_target_yaw_ = 0.;
-  double last_target_yaw_diff_ = 0.;
   ros::Time last_satisfied_time_;
-  double max_follow_angle_;  /// 如果超过了这个最大跟随角度，则代表目标速度过快，进入小陀螺模式，改参数还未加入参数文件
-  ros::Duration max_judge_period_;  /// 最大判定时间段：如果超出这个时间说明并不是在判定新数据
+  double max_follow_angle_;
+  ros::Duration max_judge_period_;
+  double last_average_yaw_diff_ = 0.;
+  double current_average_yaw_diff_ = 0.;
+  bool reconfirmation_ = true;
+  bool is_satisfied_;
 };
 
 }  // namespace rm_track

@@ -26,18 +26,23 @@ Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double
   last_predict_time_ = target_stamp.stamp;
   state_ = APPEAR;
   target_matcher_.setMaxMatchDistance(max_match_distance_);
+
+  tracker_yaw_.current_yaw_diff = 0.;
+  tracker_yaw_.last_yaw = 0.;
 }
 
 void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
 {
   if (state_ == LOST)
     return;
+  double x[6];
+  predictor_.getState(x);
+  tracker_yaw_.last_yaw = atan2(x[2], x[0]);
+
   predictor_.predict((targets_stamp.stamp - last_predict_time_).toSec());
   last_predict_time_ = targets_stamp.stamp;
   if (targets_stamp.targets.empty())
     return;
-  double x[6];
-  predictor_.getState(x);
   auto match_target_it = targets_stamp.targets.begin();
   target_matcher_.setTargetPosition(tf2::Vector3(x[0], x[2], x[4]));
   for (auto it = targets_stamp.targets.begin(); it != targets_stamp.targets.end(); it++)
@@ -56,12 +61,23 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
     z[1] = match_target_it->transform.getOrigin().y();
     z[2] = match_target_it->transform.getOrigin().z();
     predictor_.update(z);
+
+    predictor_.getState(x);
+    double current_yaw = atan2(x[2], x[0]);
+    tracker_yaw_.current_yaw_diff = current_yaw - tracker_yaw_.last_yaw;
+
     if ((state_ == APPEAR || state_ == NEW_ARMOR) &&
         (ros::Time::now() - target_cache_.front().stamp).toSec() < max_new_armor_time_)
       state_ = NEW_ARMOR;
     else
       state_ = EXIST;
     targets_stamp.targets.erase(match_target_it);
+  }
+  else
+  {
+    predictor_.getState(x);
+    double current_yaw = atan2(x[2], x[0]);
+    tracker_yaw_.current_yaw_diff = current_yaw - tracker_yaw_.last_yaw;
   }
 }
 void Tracker::updateTrackerState()
@@ -97,46 +113,51 @@ void Trackers::addTracker(ros::Time stamp, rm_track::Target& target)
   trackers_.push_back(
       Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, max_new_armor_time_, target_stamp, v0));
 }
-bool Trackers::updateState(Tracker* tracker)
+void Trackers::updateTrackersState()
 {
-  bool is_satisfied = false;
-  bool reconfirmation = false;
   ros::Time current_time = ros::Time::now();
   if (current_time - last_satisfied_time_ > max_judge_period_)
   {
     state_ = Trackers::PRECISE_AUTO_AIM;
-    reconfirmation = true;
+    reconfirmation_ = true;
+    is_satisfied_ = false;
   }
-
-  //  double current_state[6];      /// 这个在计算target到odom的yaw轴变化时使用
-  //  tracker->getTargetState(current_state);
-  double current_yaw =
-      tracker->target_cache_.back().target.target2camera_rpy[2];  /// 方案一：使用target到相机坐标系的yaw来判断
-  double current_yaw_diff = current_yaw - last_target_yaw_;
-  if (abs(current_yaw) > max_follow_angle_)
+}
+bool Trackers::attackModeDiscriminator()
+{
+  current_average_yaw_diff_ = 0.;
+  for (auto& tracker : imprecise_trackers_)
   {
-    last_satisfied_time_ = current_time;
-    //    count_++;
-    if (!reconfirmation && std::signbit(current_yaw_diff) == std::signbit(last_target_yaw_diff_))
+    current_average_yaw_diff_ +=
+        tracker.tracker_yaw_.current_yaw_diff / static_cast<double>(imprecise_trackers_.size());
+  }
+  if (abs(current_average_yaw_diff_) > max_follow_angle_)
+  {
+    last_satisfied_time_ = ros::Time::now();
+    if (!reconfirmation_ && abs(last_average_yaw_diff_) > max_follow_angle_ &&
+        (std::signbit(current_average_yaw_diff_) == std::signbit(last_average_yaw_diff_)))
     {
       state_ = IMPRECISE_AUTO_AIM;
-      is_satisfied = true;
+      is_satisfied_ = true;
     }
     else
     {
-      is_satisfied = false;
+      state_ = PRECISE_AUTO_AIM;
+      reconfirmation_ = false;
+      is_satisfied_ = false;
     }
+    last_average_yaw_diff_ = current_average_yaw_diff_;
   }
-  last_target_yaw_ = current_yaw;
-  last_target_yaw_diff_ = current_yaw_diff;
-  return is_satisfied;
+  else
+    is_satisfied_ = false;
+  return is_satisfied_;
 }
 int Trackers::getExistTrackerNumber()
 {
   int num = 0;
   for (auto& tracker : trackers_)
   {
-    if (tracker.state_ == Tracker::EXIST)
+    if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)
       num++;
   }
   return num;
@@ -145,7 +166,7 @@ std::vector<Tracker> Trackers::getExistTracker()
 {
   std::vector<Tracker> exist_tracker;
   for (auto& tracker : trackers_)
-    if (tracker.state_ == Tracker::EXIST)
+    if (tracker.state_ == Tracker::NEW_ARMOR || tracker.state_ == Tracker::EXIST)
       exist_tracker.push_back(tracker);
   return exist_tracker;
 }

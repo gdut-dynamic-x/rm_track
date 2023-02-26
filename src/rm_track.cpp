@@ -12,6 +12,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   tf_buffer_ = new tf2_ros::Buffer(ros::Duration(10));
   double max_match_distance;
   nh.param("max_match_distance", max_match_distance, 0.2);
+  double max_new_armor_distance;
+  nh.param("max_new_armor_distance", max_new_armor_distance, 0.01);
   XmlRpc::XmlRpcValue filters;
   if (nh.getParam("filters", filters))
     for (int i = 0; i < filters.size(); ++i)
@@ -37,19 +39,25 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     {
       if (selectors[i] == "new_armor")
       {
-        double new_armor_distance = 0.01;
-        logic_selectors_.push_back(new NewArmorSelector(new_armor_distance));
+        logic_selectors_.push_back(new NewArmorSelector(max_new_armor_distance));
+        break;
+      }
+    }
+    for (int i = 0; i < selectors.size(); ++i)
+    {
+      if (selectors[i] == "last_armor")
+      {
+        logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
+        break;
       }
     }
     for (int i = 0; i < selectors.size(); ++i)
     {
       if (selectors[i] == "closet_to_light_center")
+      {
         logic_selectors_.push_back(new ClosestToLightCenterSelector());
-    }
-    for (int i = 0; i < selectors.size(); ++i)
-    {
-      if (selectors[i] == "last_armor")
-        logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
+        break;
+      }
     }
   }
   else
@@ -70,6 +78,7 @@ void RmTrack::updateTrackerState()
 {
   for (auto& trackers : id2trackers_)
   {
+    trackers.second->updateTrackersState();
     for (auto it = trackers.second->trackers_.begin(); it != trackers.second->trackers_.end();)
     {
       it->updateTrackerState();
@@ -84,7 +93,7 @@ void RmTrack::updateTrackerState()
 bool RmTrack::selectAttackMode(Tracker* tracker)
 {
   std::shared_ptr<Trackers> trackers = id2trackers_.find(tracker->target_id_)->second;
-  return trackers->updateState(tracker);
+  return trackers->attackModeDiscriminator();
 }
 
 void RmTrack::run()
@@ -94,19 +103,13 @@ void RmTrack::run()
   Tracker* selected_tracker = nullptr;
   for (auto& filter : logic_filters_)
     filter->input(id2trackers_);
-  if (logic_selectors_[0]->input(id2trackers_))
+  for (int i = 0; i < logic_selectors_.size(); ++i)
   {
-    selected_tracker = logic_selectors_[0]->output();
-    double x_new[6];
-    selected_tracker->getTargetState(x_new);
-  }
-  else if (logic_selectors_[2]->input(id2trackers_))
-  {
-    selected_tracker = logic_selectors_[2]->output();
-  }
-  else if (logic_selectors_[1]->input(id2trackers_))
-  {
-    selected_tracker = logic_selectors_[1]->output();
+    if (logic_selectors_[i]->input(id2trackers_))
+    {
+      selected_tracker = logic_selectors_[i]->output();
+      break;
+    }
   }
   double x[6]{ 0, 0, 0, 0, 0, 0 };
   ros::Time now = ros::Time::now();
@@ -120,12 +123,14 @@ void RmTrack::run()
       track_data.header.frame_id = "odom";
       track_data.header.stamp = now;
       track_data.id = target_id;
+      selected_tracker->getTargetState(x);
       track_data.target_pos.x = x[0];
       track_data.target_pos.y = x[2];
       track_data.target_pos.z = x[4];
       track_data.target_vel.x = 0.;
       track_data.target_vel.y = 0.;
       track_data.target_vel.z = 0.;
+      track_pub_.publish(track_data);
       return;
     }
     selected_tracker->predict(x, now);
