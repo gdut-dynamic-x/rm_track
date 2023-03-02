@@ -35,7 +35,7 @@ private:
     q_dynamic_[config.q_element] = config.q_value;
     r_dynamic_[config.r_element] = config.r_value;
   }
-  bool dynamic_reconfig_initialized_ = false;
+  static bool dynamic_reconfig_initialized_;
   static double q_dynamic_[], r_dynamic_[];
   static dynamic_reconfigure::Server<rm_track::EKfConfig>* reconf_server_;
 };
