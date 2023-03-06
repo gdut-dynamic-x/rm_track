@@ -29,6 +29,7 @@ public:
   {
     nh.param("max_storage_time", max_storage_time_, 5.0);
     nh.param("max_lost_time", max_lost_time_, 0.1);
+    nh.param("num_data", num_data_, 20);
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
@@ -36,8 +37,8 @@ public:
 protected:
   std::shared_ptr<Trackers>& allocateTrackers(int id)
   {
-    id2trackers_.insert(
-        std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_, max_storage_time_)));
+    id2trackers_.insert(std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_,
+                                                                      max_storage_time_, num_data_)));
     return id2trackers_[id];
   }
   void addTracker(ros::Time stamp, Target& target)
@@ -65,6 +66,7 @@ protected:
   std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers_;
   double max_storage_time_, max_lost_time_;
   double max_match_distance_;
+  int num_data_;
 
   std::mutex& mutex_;
 

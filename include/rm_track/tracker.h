@@ -6,6 +6,7 @@
 #include <geometry_msgs/Pose.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <rm_common/filters/filters.h>
 #include "ekf/linear_kf.h"
 
 namespace rm_track
@@ -79,7 +80,7 @@ public:
   } state_;
 
   Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time,
-          rm_track::TargetStamp& target_stamp, double* initial_velocity);
+          rm_track::TargetStamp& target_stamp, double* initial_velocity, int num_data);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
   void updateMarker(visualization_msgs::MarkerArray& marker_array, int marker_id);
@@ -91,6 +92,10 @@ public:
   {
     predictor_.predict(x, (time - last_predict_time_).toSec());
   }
+  double targetAccelLength()
+  {
+    return std::sqrt(pow(accel_->x(), 2) + pow(accel_->y(), 2) + pow(accel_->z(), 2));
+  }
 
   int target_id_;
   std::deque<TargetStamp> target_cache_;
@@ -98,7 +103,10 @@ public:
 private:
   LinearKf predictor_;
   ros::Time last_predict_time_;
+  double last_target_vel_[3];
   TargetMatcher target_matcher_;
+
+  std::shared_ptr<Vector3WithFilter<double>> accel_;
 
   visualization_msgs::Marker marker_pos_;
   visualization_msgs::Marker marker_vel_;
@@ -110,11 +118,12 @@ private:
 class Trackers
 {
 public:
-  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time)
+  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data)
     : id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
     , max_storage_time_(max_storage_time)
+    , num_data_(num_data)
   {
   }
   void updateTracker(TargetsStamp& target_stamps)
@@ -132,6 +141,7 @@ private:
   double max_match_distance_;
   double max_lost_time_;
   double max_storage_time_;
+  int num_data_;
 };
 
 }  // namespace rm_track

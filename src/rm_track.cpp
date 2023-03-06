@@ -96,11 +96,13 @@ void RmTrack::run()
     }
   }
   double x[6]{ 0, 0, 0, 0, 0, 0 };
+  double target_accel_length = 0;
   ros::Time now = ros::Time::now();
   int target_id;
   if (selected_tracker)
   {
     selected_tracker->predict(x, now);
+    target_accel_length = selected_tracker->targetAccelLength();
     target_id = selected_tracker->target_id_;
   }
   else
@@ -115,6 +117,7 @@ void RmTrack::run()
   track_data.target_vel.x = x[1];
   track_data.target_vel.y = x[3];
   track_data.target_vel.z = x[5];
+  track_data.accel = target_accel_length;
 
   track_pub_.publish(track_data);
 }

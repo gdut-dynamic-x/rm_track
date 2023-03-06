@@ -7,12 +7,14 @@
 namespace rm_track
 {
 Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time,
-                 rm_track::TargetStamp& target_stamp, double* initial_velocity)
+                 rm_track::TargetStamp& target_stamp, double* initial_velocity, int num_data)
   : target_id_(id)
   , max_match_distance_(max_match_distance)
   , max_lost_time_(max_lost_time)
   , max_storage_time_(max_storage_time)
 {
+  accel_ = std::make_shared<Vector3WithFilter<double>>(num_data);
+
   target_cache_.push_back(target_stamp);
   double x[6];
   x[0] = target_stamp.target.transform.getOrigin().x();
@@ -47,7 +49,8 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
 {
   if (state_ == LOST)
     return;
-  predictor_.predict((targets_stamp.stamp - last_predict_time_).toSec());
+  ros::Duration dt = targets_stamp.stamp - last_predict_time_;
+  predictor_.predict(dt.toSec());
   last_predict_time_ = targets_stamp.stamp;
   if (targets_stamp.targets.empty())
     return;
@@ -74,7 +77,17 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
     state_ = EXIST;
     targets_stamp.targets.erase(match_target_it);
   }
+  predictor_.getState(x);
+  double target_vel[3]{ x[1], x[3], x[5] };
+  double target_accel[3];
+  for (int i = 0; i < 3; i++)
+  {
+    target_accel[i] = (target_vel[i] - last_target_vel_[i]) / dt.toSec();
+    last_target_vel_[i] = target_vel[i];
+  }
+  accel_->input(target_accel);
 }
+
 void Tracker::updateTrackerState()
 {
   if (target_cache_.empty())
@@ -149,8 +162,9 @@ void Trackers::addTracker(ros::Time stamp, rm_track::Target& target)
     v0[1] = x[3];
     v0[2] = x[5];
   }
-  trackers_.push_back(Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, target_stamp, v0));
+  trackers_.push_back(Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, target_stamp, v0, num_data_));
 }
+
 int Trackers::getExistTrackerNumber()
 {
   int num = 0;
@@ -161,6 +175,7 @@ int Trackers::getExistTrackerNumber()
   }
   return num;
 }
+
 std::vector<Tracker> Trackers::getExistTracker()
 {
   std::vector<Tracker> exist_tracker;
