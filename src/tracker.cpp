@@ -27,8 +27,9 @@ Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double
   state_ = APPEAR;
   target_matcher_.setMaxMatchDistance(max_match_distance_);
 
-  tracker_yaw_.current_yaw_diff = 0.;
-  tracker_yaw_.last_yaw = 0.;
+  tracker_xy_diff.current_xy_diff = 0.;
+  tracker_xy_diff.last_xy = tf2::Vector3(0., 0., 0.);
+  tracker_xy_diff.z_distance = 0.;
 }
 
 void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
@@ -61,10 +62,11 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
     z[1] = match_target_it->transform.getOrigin().y();
     z[2] = match_target_it->transform.getOrigin().z();
     predictor_.update(z);
-
     predictor_.getState(x);
-    double current_yaw = atan2(x[2], x[0]);
-    tracker_yaw_.current_yaw_diff = current_yaw - tracker_yaw_.last_yaw;
+    tf2::Vector3 current_xy(x[0], x[2], 0.);
+    tracker_xy_diff.current_xy_diff = tf2::tf2Distance(current_xy, tracker_xy_diff.last_xy);
+    tracker_xy_diff.z_distance = tf2::tf2Distance(
+        tf2::Vector3(x[0], x[2], x[4]), tf2::Vector3(0., 0., 0.));  // compute the distance between target to ori
 
     if ((state_ == APPEAR || state_ == NEW_ARMOR) &&
         (ros::Time::now() - target_cache_.front().stamp).toSec() < max_new_armor_time_)
@@ -76,8 +78,10 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
   else
   {
     predictor_.getState(x);
-    double current_yaw = atan2(x[2], x[0]);
-    tracker_yaw_.current_yaw_diff = current_yaw - tracker_yaw_.last_yaw;
+    tf2::Vector3 current_xy(x[0], x[2], 0.);
+    tracker_xy_diff.current_xy_diff = tf2::tf2Distance(current_xy, tracker_xy_diff.last_xy);
+    tracker_xy_diff.z_distance = tf2::tf2Distance(
+        tf2::Vector3(x[0], x[2], x[4]), tf2::Vector3(0., 0., 0.));  // compute the distance between target to ori
   }
 }
 void Tracker::updateTrackerState()
@@ -121,21 +125,24 @@ void Trackers::updateTrackersState()
     state_ = Trackers::PRECISE_AUTO_AIM;
     reconfirmation_ = true;
     is_satisfied_ = false;
+    current_circle_center_.clear();
+    imprecise_exist_trackers_.clear();
   }
 }
 bool Trackers::attackModeDiscriminator()
 {
-  current_average_yaw_diff_ = 0.;
-  for (auto& tracker : imprecise_trackers_)
+  current_average_area_ = 0.;
+  for (auto& tracker : imprecise_exist_trackers_)
   {
-    current_average_yaw_diff_ +=
-        tracker.tracker_yaw_.current_yaw_diff / static_cast<double>(imprecise_trackers_.size());
+    current_average_area_ +=
+        tracker.tracker_xy_diff.current_xy_diff * tracker.tracker_xy_diff.z_distance /
+        (2 * static_cast<double>(imprecise_exist_trackers_.size()));  // compute the area of triangle
   }
-  if (abs(current_average_yaw_diff_) > max_follow_angle_)
+  if (abs(current_average_area_) > max_follow_area_)
   {
     last_satisfied_time_ = ros::Time::now();
-    if (!reconfirmation_ && abs(last_average_yaw_diff_) > max_follow_angle_ &&
-        (std::signbit(current_average_yaw_diff_) == std::signbit(last_average_yaw_diff_)))
+    if (!reconfirmation_ && abs(last_average_area_) > max_follow_area_ &&
+        (std::signbit(current_average_area_) == std::signbit(last_average_area_)))
     {
       state_ = IMPRECISE_AUTO_AIM;
       is_satisfied_ = true;
@@ -146,12 +153,72 @@ bool Trackers::attackModeDiscriminator()
       reconfirmation_ = false;
       is_satisfied_ = false;
     }
-    last_average_yaw_diff_ = current_average_yaw_diff_;
+    last_average_area_ = current_average_area_;
   }
   else
     is_satisfied_ = false;
   return is_satisfied_;
 }
+
+void Trackers::computeCircleCenter(Tracker* selected_tracker)
+{
+  if (imprecise_exist_trackers_.empty())
+  {
+    double x_not_predict[6];
+    selected_tracker->getTargetState(x_not_predict);
+    current_circle_center_ = { x_not_predict[0], x_not_predict[2] };
+    return;
+  }
+  int rand_index = 0;
+  if (imprecise_exist_trackers_.size() - 1 != 0)
+  {
+    rand_index = rand() % (imprecise_exist_trackers_.size() - 1);
+  }
+  Tracker& tracker = imprecise_exist_trackers_[rand_index];
+  double x[6];
+  tracker.getTargetState(x);
+  if (points_of_2D_plant_.size() < 3)
+  {
+    double x_not_predict[6];
+    selected_tracker->getTargetState(x_not_predict);
+    points_of_2D_plant_.push_back(std::vector<double>{ x_not_predict[0], x_not_predict[2] });
+    current_circle_center_ = { x_not_predict[0], x_not_predict[2] };
+    return;
+  }
+  /// update points
+  points_of_2D_plant_.erase(points_of_2D_plant_.begin());
+  points_of_2D_plant_.push_back(std::vector<double>{ x[0], x[2] });
+  /// compute circle center
+  double a = points_of_2D_plant_[0][0] - points_of_2D_plant_[1][0];  // x1 - x2
+  double b = points_of_2D_plant_[0][1] - points_of_2D_plant_[1][1];  // y1 - y2
+  double c = points_of_2D_plant_[0][0] - points_of_2D_plant_[2][0];  // x1 - x3
+  double d = points_of_2D_plant_[0][1] - points_of_2D_plant_[2][1];  // y1 - y3
+  double det = b * c - a * d;
+  if (abs(det) < 1e-5)  // If three points are at the same line, then return.
+  {
+    double x_not_predict[6];
+    selected_tracker->getTargetState(x_not_predict);
+    current_circle_center_ = { x_not_predict[0], x_not_predict[2] };
+    return;
+  }
+  double e = ((pow(points_of_2D_plant_[0][0], 2) - pow(points_of_2D_plant_[1][0], 2)) -
+              (pow(points_of_2D_plant_[0][1], 2) - pow(points_of_2D_plant_[1][1], 2))) /
+             2.;  // ((x1^2-x2^2)-(y1^2-y2^2)) / 2
+  double f = ((pow(points_of_2D_plant_[0][0], 2) - pow(points_of_2D_plant_[2][0], 2)) -
+              (pow(points_of_2D_plant_[0][1], 2) - pow(points_of_2D_plant_[2][1], 2))) /
+             2.;  // ((x1^2-x3^2)-(y1^2-y3^2)) / 2
+  double circle_center_x = -(d * e - b * f) / det;
+  double circle_center_y = -(a * f - c * e) / det;
+  current_circle_center_ = { circle_center_x, circle_center_y };
+  ROS_ERROR("circle_center = (%lf, %lf) ", circle_center_x, circle_center_y);
+  ROS_INFO("r = %lf", sqrt(pow(circle_center_x, 2) + pow(circle_center_y, 2)));
+}
+
+void Trackers::getCircleCenter(std::vector<double>& circle_center)
+{
+  circle_center = current_circle_center_;
+}
+
 int Trackers::getExistTrackerNumber()
 {
   int num = 0;

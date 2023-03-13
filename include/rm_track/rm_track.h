@@ -20,6 +20,8 @@ public:
 private:
   void updateTrackerState();
   bool selectAttackMode(Tracker* tracker);
+  void getCircleCenter(Tracker* selected_tracker, std::vector<double>& circle_center);
+  void getAverageHeight(Tracker* selected_tracker, double* x, double* height);
 
   std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
   std::vector<LogicFilterBase*> logic_filters_;
