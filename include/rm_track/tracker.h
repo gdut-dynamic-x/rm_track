@@ -101,11 +101,12 @@ public:
 
   int target_id_;
   std::deque<TargetStamp> target_cache_;
-  struct TrackerYaw
+  struct TrackerXYDiff
   {
-    double current_yaw_diff;
-    double last_yaw;
-  } tracker_yaw_;
+    double current_xy_diff;
+    tf2::Vector3 last_xy;
+    double z_distance;
+  } tracker_xy_diff;
 
 private:
   LinearKf predictor_;
@@ -127,7 +128,7 @@ class Trackers
 {
 public:
   Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, double max_new_armor_time,
-           double max_judge_period, double max_follow_angle, int num_data)
+           double max_judge_period, double max_follow_area, int num_data)
     : id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
@@ -135,7 +136,7 @@ public:
     , max_new_armor_time_(max_new_armor_time)
     , state_(Trackers::PRECISE_AUTO_AIM)
     , last_satisfied_time_(ros::Time::now())
-    , max_follow_angle_(max_follow_angle)
+    , max_follow_area_(max_follow_area)
     , max_judge_period_(max_judge_period)
     , num_data_(num_data)
   {
@@ -155,9 +156,12 @@ public:
   int getExistTrackerNumber();
   void updateTrackersState();
   bool attackModeDiscriminator();
+  void computeCircleCenter(Tracker* selected_tracker);
+  void getCircleCenter(std::vector<double>& circle_center);
   std::vector<Tracker> getExistTracker();
+  std::deque<double> height_;
   std::vector<Tracker> trackers_;
-  std::vector<Tracker> imprecise_trackers_;
+  std::vector<Tracker> imprecise_exist_trackers_;
 
 private:
   int id_;
@@ -170,12 +174,14 @@ private:
   double last_target_yaw_ = 0.;
   double last_target_yaw_diff_ = 0.;
   ros::Time last_satisfied_time_;
-  double max_follow_angle_;
+  double max_follow_area_;
   ros::Duration max_judge_period_;
-  double last_average_yaw_diff_ = 0.;
-  double current_average_yaw_diff_ = 0.;
+  double last_average_area_ = 0.;
+  double current_average_area_ = 0.;
   bool reconfirmation_ = true;
   bool is_satisfied_;
+  std::vector<std::vector<double>> points_of_2D_plant_;
+  std::vector<double> current_circle_center_;
 };
 
 }  // namespace rm_track

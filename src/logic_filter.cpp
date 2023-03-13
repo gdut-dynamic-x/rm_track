@@ -46,7 +46,10 @@ void HeightFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2
         }
         if (std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) < basic_range_[0] ||
             std::abs(odom2target.getOrigin().z() - odom2base.transform.translation.z) > basic_range_[1])
+        {
+          ROS_ERROR("Height filter ERROR");
           tracker.state_ = Tracker::NOT_SELECTABLE;
+        }
       }
     }
   }
@@ -81,7 +84,10 @@ void DistanceFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& i
         tf2::doTransform(pose, pose, odom2base);
         tf2::fromMsg(pose, transform);
         if (transform.getOrigin().length() < basic_range_[0] || transform.getOrigin().length() > basic_range_[1])
+        {
+          ROS_ERROR("Distance filter ERROR");
           tracker.state_ = Tracker::NOT_SELECTABLE;
+        }
       }
     }
   }
@@ -103,7 +109,7 @@ void PitchFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2t
 {
   for (auto& trackers : id2trackers)
   {
-    trackers.second->imprecise_trackers_ = trackers.second->getExistTracker();
+    trackers.second->imprecise_exist_trackers_ = trackers.second->getExistTracker();
     if (trackers.second->state_ == Trackers::IMPRECISE_AUTO_AIM)
     {
       for (auto& tracker : trackers.second->trackers_)

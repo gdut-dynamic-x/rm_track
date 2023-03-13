@@ -6,6 +6,7 @@
 #include "tracker.h"
 #include <rm_msgs/TargetDetectionArray.h>
 #include <apriltag_ros/AprilTagDetectionArray.h>
+#include <rm_track/ImpreciseAutoAimConfig.h>
 
 #include <ros/ros.h>
 #include <tf2_ros/transform_listener.h>
@@ -31,8 +32,13 @@ public:
     nh.param("max_lost_time", max_lost_time_, 0.1);
     nh.param("max_new_armor_time", max_new_armor_time_, 0.12);
     nh.param("max_judge_period", max_judge_period_, 0.1);
-    nh.param("max_follow_angle", max_follow_angle_, 0.0053);
+    nh.param("max_follow_area", max_follow_area_, 0.01);  /// default parameter is waiting for amending
     nh.param("num_data", num_data_, 20);
+
+    dynamic_reconfigure::Server<rm_track::ImpreciseAutoAimConfig>::CallbackType cb;
+    cb = boost::bind(&ReceiverBase<MsgType>::reconfCallback, this, _1, _2);
+    reconf_server_.setCallback(cb);
+    dynamic_reconfig_initialized_ = false;
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
@@ -42,7 +48,7 @@ protected:
   {
     id2trackers_.insert(
         std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_, max_storage_time_,
-                                                      num_data_, max_new_armor_time_, max_judge_period_, max_follow_angle_)));
+                                                      num_data_, max_new_armor_time_, max_judge_period_, max_follow_area_)));
     return id2trackers_[id];
   }
   void addTracker(ros::Time stamp, Target& target)
@@ -83,14 +89,24 @@ protected:
   double max_new_armor_time_;
 
   double max_judge_period_;
-  double max_follow_angle_;
+  double max_follow_area_;
   int num_data_;
 
   std::mutex& mutex_;
 
 private:
   virtual void msgCallback(const boost::shared_ptr<const MsgType>& msg) = 0;
-
+  void reconfCallback(rm_track::ImpreciseAutoAimConfig& conf, uint32_t level)
+  {
+    if (!dynamic_reconfig_initialized_)
+    {
+      conf.max_follow_area = max_follow_area_;
+      dynamic_reconfig_initialized_ = true;
+    }
+    max_follow_area_ = conf.max_follow_area;
+  }
+  bool dynamic_reconfig_initialized_;
+  dynamic_reconfigure::Server<rm_track::ImpreciseAutoAimConfig> reconf_server_;
   message_filters::Subscriber<MsgType> msg_sub_;
   tf2_ros::MessageFilter<MsgType> tf_filter_;
 };
@@ -174,5 +190,4 @@ private:
     updateTracker(targets_stamp);
   }
 };
-
 }  // namespace rm_track

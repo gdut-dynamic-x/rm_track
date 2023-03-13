@@ -104,6 +104,26 @@ bool RmTrack::selectAttackMode(Tracker* tracker)
   return trackers->attackModeDiscriminator();
 }
 
+void RmTrack::getCircleCenter(Tracker* selected_tracker, std::vector<double>& circle_center)
+{
+  std::shared_ptr<Trackers> trackers = id2trackers_.find(selected_tracker->target_id_)->second;
+  trackers->computeCircleCenter(selected_tracker);
+  trackers->getCircleCenter(circle_center);
+}
+
+void RmTrack::getAverageHeight(Tracker* selected_tracker, double* x, double* height)
+{
+  std::shared_ptr<Trackers> trackers = id2trackers_.find(selected_tracker->target_id_)->second;
+  trackers->height_.push_front(x[4]);
+  double height_num = static_cast<double>(trackers->height_.size());
+  if (height_num > 4)
+    trackers->height_.pop_back();
+  for (auto z : trackers->height_)
+  {
+    *height += z / height_num;
+  }
+}
+
 void RmTrack::run()
 {
   std::lock_guard<std::mutex> guard(mutex_);
@@ -128,14 +148,24 @@ void RmTrack::run()
     target_id = selected_tracker->target_id_;
     if (selectAttackMode(selected_tracker))
     {
+      ROS_ERROR("SPINGING");
+      std::vector<double> circle_center(2);
+      double height;
+      /// disable getCircleCneter
+      //      getCircleCenter(selected_tracker, circle_center);
+
+      selected_tracker->getTargetState(x);
+      getAverageHeight(selected_tracker, x, &height);
       rm_msgs::TrackData track_data;
       track_data.header.frame_id = "odom";
       track_data.header.stamp = now;
       track_data.id = target_id;
-      selected_tracker->getTargetState(x);
+      //      track_data.target_pos.x = circle_center[0];
+      //      track_data.target_pos.y = circle_center[1];
       track_data.target_pos.x = x[0];
       track_data.target_pos.y = x[2];
-      track_data.target_pos.z = x[4];
+      track_data.target_pos.z = height;
+      //      track_data.target_pos.z = [4];
       track_data.target_vel.x = 0.;
       track_data.target_vel.y = 0.;
       track_data.target_vel.z = 0.;
