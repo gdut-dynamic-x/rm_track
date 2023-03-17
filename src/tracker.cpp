@@ -26,10 +26,7 @@ Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double
   last_predict_time_ = target_stamp.stamp;
   state_ = APPEAR;
   target_matcher_.setMaxMatchDistance(max_match_distance_);
-
-  tracker_xy_diff.current_xy_diff = 0.;
-  tracker_xy_diff.last_xy = tf2::Vector3(0., 0., 0.);
-  tracker_xy_diff.z_distance = 0.;
+  tracker_distance_.distance = 0.;
 }
 
 void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
@@ -38,7 +35,6 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
     return;
   double x[6];
   predictor_.getState(x);
-  tracker_yaw_.last_yaw = atan2(x[2], x[0]);
 
   predictor_.predict((targets_stamp.stamp - last_predict_time_).toSec());
   last_predict_time_ = targets_stamp.stamp;
@@ -54,34 +50,22 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
   if (target_matcher_.matchSuccessful())
   {
     target_cache_.push_back(TargetStamp{
-        .stamp = targets_stamp.stamp,
-        .target = *match_target_it,
-    });
+        .stamp = targets_stamp.stamp, .target = *match_target_it, .last_target_pt = &target_cache_.back().target });
+    // compute the distance between current target and last target
+    tracker_distance_.distance = tf2::Vector3(target_cache_.back().last_target_pt->current_target_position)
+                                     .distance(match_target_it->current_target_position);
     double z[3];
     z[0] = match_target_it->transform.getOrigin().x();
     z[1] = match_target_it->transform.getOrigin().y();
     z[2] = match_target_it->transform.getOrigin().z();
     predictor_.update(z);
     predictor_.getState(x);
-    tf2::Vector3 current_xy(x[0], x[2], 0.);
-    tracker_xy_diff.current_xy_diff = tf2::tf2Distance(current_xy, tracker_xy_diff.last_xy);
-    tracker_xy_diff.z_distance = tf2::tf2Distance(
-        tf2::Vector3(x[0], x[2], x[4]), tf2::Vector3(0., 0., 0.));  // compute the distance between target to ori
-
     if ((state_ == APPEAR || state_ == NEW_ARMOR) &&
         (ros::Time::now() - target_cache_.front().stamp).toSec() < max_new_armor_time_)
       state_ = NEW_ARMOR;
     else
       state_ = EXIST;
     targets_stamp.targets.erase(match_target_it);
-  }
-  else
-  {
-    predictor_.getState(x);
-    tf2::Vector3 current_xy(x[0], x[2], 0.);
-    tracker_xy_diff.current_xy_diff = tf2::tf2Distance(current_xy, tracker_xy_diff.last_xy);
-    tracker_xy_diff.z_distance = tf2::tf2Distance(
-        tf2::Vector3(x[0], x[2], x[4]), tf2::Vector3(0., 0., 0.));  // compute the distance between target to ori
   }
 }
 void Tracker::updateTrackerState()
@@ -104,7 +88,7 @@ void Tracker::updateTrackerState()
 }
 void Trackers::addTracker(ros::Time stamp, rm_track::Target& target)
 {
-  TargetStamp target_stamp{ .stamp = stamp, .target = target };
+  TargetStamp target_stamp{ .stamp = stamp, .target = target, .last_target_pt = nullptr };
   double v0[3] = { 0, 0, 0 };
   if (getExistTrackerNumber() == 1)
   {
@@ -127,22 +111,24 @@ void Trackers::updateTrackersState()
     is_satisfied_ = false;
     current_circle_center_.clear();
     imprecise_exist_trackers_.clear();
+    height_.clear();
   }
 }
 bool Trackers::attackModeDiscriminator()
 {
-  current_average_area_ = 0.;
+  current_average_distance_diff_ = 0.;
   for (auto& tracker : imprecise_exist_trackers_)
   {
-    current_average_area_ +=
-        tracker.tracker_xy_diff.current_xy_diff * tracker.tracker_xy_diff.z_distance /
-        (2 * static_cast<double>(imprecise_exist_trackers_.size()));  // compute the area of triangle
+    current_average_distance_diff_ +=
+        tracker.tracker_distance_.distance / static_cast<double>(imprecise_exist_trackers_.size());
   }
-  if (abs(current_average_area_) > max_follow_area_)
+  //  ROS_INFO("current_average_distance_diff_ = %lf", current_average_distance_diff_);
+  if (abs(current_average_distance_diff_) > max_follow_distance_)
   {
     last_satisfied_time_ = ros::Time::now();
-    if (!reconfirmation_ && abs(last_average_area_) > max_follow_area_ &&
-        (std::signbit(current_average_area_) == std::signbit(last_average_area_)))
+    // TODO: judgement of positive or negative digit here may not be effective
+    if (!reconfirmation_ && abs(last_average_distance_diff_) > max_follow_distance_ &&
+        (std::signbit(current_average_distance_diff_) == std::signbit(last_average_distance_diff_)))
     {
       state_ = IMPRECISE_AUTO_AIM;
       is_satisfied_ = true;
@@ -153,7 +139,7 @@ bool Trackers::attackModeDiscriminator()
       reconfirmation_ = false;
       is_satisfied_ = false;
     }
-    last_average_area_ = current_average_area_;
+    last_average_distance_diff_ = current_average_distance_diff_;
   }
   else
     is_satisfied_ = false;
