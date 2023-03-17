@@ -114,9 +114,10 @@ void RmTrack::getCircleCenter(Tracker* selected_tracker, std::vector<double>& ci
 void RmTrack::getAverageHeight(Tracker* selected_tracker, double* x, double* height)
 {
   std::shared_ptr<Trackers> trackers = id2trackers_.find(selected_tracker->target_id_)->second;
-  trackers->height_.push_front(x[4]);
+  if (x[4] != 0)
+    trackers->height_.push_front(x[4]);
   double height_num = static_cast<double>(trackers->height_.size());
-  if (height_num > 4)
+  if (height_num > 8)  // TODO: height_num parameter is waiting for measurement
     trackers->height_.pop_back();
   for (auto z : trackers->height_)
   {
