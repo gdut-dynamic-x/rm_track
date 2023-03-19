@@ -7,13 +7,14 @@
 namespace rm_track
 {
 Tracker::Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time,
-                 double max_new_armor_time, rm_track::TargetStamp& target_stamp, double* initial_velocity)
+                 double max_new_armor_time, rm_track::TargetStamp& target_stamp, double* initial_velocity, int num_data)
   : target_id_(id)
   , max_match_distance_(max_match_distance)
   , max_lost_time_(max_lost_time)
   , max_storage_time_(max_storage_time)
   , max_new_armor_time_(max_new_armor_time)
 {
+  accel_ = std::make_shared<Vector3WithFilter<double>>(num_data);
   target_cache_.push_back(target_stamp);
   double x[6];
   x[0] = target_stamp.target.transform.getOrigin().x();
@@ -36,7 +37,9 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
   double x[6];
   predictor_.getState(x);
 
-  predictor_.predict((targets_stamp.stamp - last_predict_time_).toSec());
+  //  predictor_.predict((targets_stamp.stamp - last_predict_time_).toSec());
+  ros::Duration dt = targets_stamp.stamp - last_predict_time_;
+  predictor_.predict(dt.toSec());
   last_predict_time_ = targets_stamp.stamp;
   if (targets_stamp.targets.empty())
     return;
@@ -51,7 +54,7 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
   {
     target_cache_.push_back(TargetStamp{
         .stamp = targets_stamp.stamp, .target = *match_target_it, .last_target_pt = &target_cache_.back().target });
-    // compute the distance between current target and last target
+    /// compute the distance between current target and last target
     tracker_distance_.distance = tf2::Vector3(target_cache_.back().last_target_pt->current_target_position)
                                      .distance(match_target_it->current_target_position);
     double z[3];
@@ -67,6 +70,15 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
       state_ = EXIST;
     targets_stamp.targets.erase(match_target_it);
   }
+  predictor_.getState(x);
+  double target_vel[3]{ x[1], x[3], x[5] };
+  double target_accel[3];
+  for (int i = 0; i < 3; i++)
+  {
+    target_accel[i] = (target_vel[i] - last_target_vel_[i]) / dt.toSec();
+    last_target_vel_[i] = target_vel[i];
+  }
+  accel_->input(target_accel);
 }
 void Tracker::updateTrackerState()
 {
@@ -98,8 +110,8 @@ void Trackers::addTracker(ros::Time stamp, rm_track::Target& target)
     v0[1] = x[3];
     v0[2] = x[5];
   }
-  trackers_.push_back(
-      Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, max_new_armor_time_, target_stamp, v0));
+  trackers_.push_back(Tracker(id_, max_match_distance_, max_lost_time_, max_storage_time_, max_new_armor_time_,
+                              target_stamp, v0, num_data_));
 }
 void Trackers::updateTrackersState()
 {
@@ -109,9 +121,17 @@ void Trackers::updateTrackersState()
     state_ = Trackers::PRECISE_AUTO_AIM;
     reconfirmation_ = true;
     is_satisfied_ = false;
-    current_circle_center_.clear();
+    //    current_circle_center_.clear();
     imprecise_exist_trackers_.clear();
     height_.clear();
+    points_buffer_->clear();
+    average_->clear();
+    points_buffer_ = std::make_shared<std::vector<std::vector<double>>>(
+        std::vector<std::vector<double>>(points_num_, std::vector<double>(3, 0.)));
+    average_ = std::make_shared<std::vector<double>>(3, 0.);
+    idx_ = 0;
+    test_idx_ = 0;
+    this->average_filter_->clear();
   }
 }
 bool Trackers::attackModeDiscriminator()
@@ -198,6 +218,41 @@ void Trackers::computeCircleCenter(Tracker* selected_tracker)
   current_circle_center_ = { circle_center_x, circle_center_y };
   ROS_ERROR("circle_center = (%lf, %lf) ", circle_center_x, circle_center_y);
   ROS_INFO("r = %lf", sqrt(pow(circle_center_x, 2) + pow(circle_center_y, 2)));
+}
+
+bool Trackers::computeAttackPosition()
+{
+  // todo:是否考虑不拿当前帧所有的存在装甲板去求和，而是拿一个
+  bool is_satisfied = true;
+  for (auto exist_tracker : this->imprecise_exist_trackers_)
+  {
+    double state[6];
+    exist_tracker.getTargetState(state);
+    //    this->average_filter_->input(state);
+    (*average_)[0] -= (*points_buffer_)[idx_][0];
+    (*average_)[1] -= (*points_buffer_)[idx_][1];
+    (*average_)[2] -= (*points_buffer_)[idx_][2];
+    (*points_buffer_)[idx_] = std::vector<double>{ state[0], state[2], state[4] };
+    (*average_)[0] += (*points_buffer_)[idx_][0];
+    (*average_)[1] += (*points_buffer_)[idx_][1];
+    (*average_)[2] += (*points_buffer_)[idx_][2];
+    idx_++;
+    test_idx_++;
+    idx_ %= num_data_;
+    if (test_idx_ < num_data_)
+      is_satisfied = false;
+  }
+  return is_satisfied;
+}
+
+void Trackers::getAttackPosition(double* attack_point)
+{
+  attack_point[0] = (*average_)[0] / points_num_;
+  attack_point[1] = (*average_)[1] / points_num_;
+  attack_point[2] = (*average_)[2] / points_num_;
+  //  attack_point[0] = this->average_filter_->x();
+  //  attack_point[1] = this->average_filter_->y();
+  //  attack_point[2] = this->average_filter_->z();
 }
 
 void Trackers::getCircleCenter(std::vector<double>& circle_center)
