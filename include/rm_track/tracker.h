@@ -8,6 +8,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <rm_common/filters/filters.h>
 #include "ekf/linear_kf.h"
+#include <rm_common/filters/filters.h>
 
 namespace rm_track
 {
@@ -83,8 +84,8 @@ public:
     LOST
   } state_;
 
-  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time
-          , double max_new_armor_time, rm_track::TargetStamp& target_stamp, double* initial_velocity, int num_data);
+  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time, double max_new_armor_time,
+          int num_data, rm_track::TargetStamp& target_stamp, double* initial_velocity);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
   void updateMarker(visualization_msgs::MarkerArray& marker_array, int marker_id);
@@ -110,11 +111,10 @@ public:
 
 private:
   LinearKf predictor_;
-  ros::Time last_predict_time_;
   double last_target_vel_[3];
-  TargetMatcher target_matcher_;
-
   std::shared_ptr<Vector3WithFilter<double>> accel_;
+  ros::Time last_predict_time_;
+  TargetMatcher target_matcher_;
 
   visualization_msgs::Marker marker_pos_;
   visualization_msgs::Marker marker_vel_;
@@ -127,8 +127,8 @@ private:
 class Trackers
 {
 public:
-  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, double max_new_armor_time,
-           double max_judge_period, double max_follow_distance, int num_data)
+  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data, double max_new_armor_time,
+           double max_judge_period, double max_follow_distance)
     : id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
@@ -140,6 +140,12 @@ public:
     , max_judge_period_(max_judge_period)
     , num_data_(num_data)
   {
+    points_buffer_ = std::make_shared<std::vector<std::vector<double>>>(std::vector<std::vector<double>>(
+        points_num_, std::vector<double>(3, 0.)));  // TODO: average deque length need to modify
+    average_ = std::make_shared<std::vector<double>>(3, 0.);
+    average_filter_ = std::make_shared<Vector3WithFilter<double>>(num_data_);
+    idx_ = 0;
+    test_idx_ = 0;
   }
   enum STATE
   {
@@ -157,6 +163,8 @@ public:
   void updateTrackersState();
   bool attackModeDiscriminator();
   void computeCircleCenter(Tracker* selected_tracker);
+  bool computeAttackPosition();
+  void getAttackPosition(double* attack_point);
   void getCircleCenter(std::vector<double>& circle_center);
   std::vector<Tracker> getExistTracker();
   std::deque<double> height_;
@@ -182,6 +190,12 @@ private:
   bool is_satisfied_;
   std::vector<std::vector<double>> points_of_2D_plant_;
   std::vector<double> current_circle_center_;
+  std::shared_ptr<std::vector<std::vector<double>>> points_buffer_;
+  int idx_;
+  int test_idx_;
+  int points_num_ = 70;  // TODO: average deque length need to modify
+  std::shared_ptr<std::vector<double>> average_;
+  std::shared_ptr<Vector3WithFilter<double>> average_filter_;
 };
 
 }  // namespace rm_track

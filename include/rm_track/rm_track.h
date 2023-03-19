@@ -21,6 +21,7 @@ private:
   void updateTrackerState();
   bool selectAttackMode(Tracker* tracker);
   void getCircleCenter(Tracker* selected_tracker, std::vector<double>& circle_center);
+  bool getAttackPosition(Tracker* selected_tracker, double* attack_point);
   void getAverageHeight(Tracker* selected_tracker, double* x, double* height);
 
   std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
