@@ -165,6 +165,7 @@ void RmTrack::run()
       track_data.header.frame_id = "odom";
       track_data.header.stamp = now;
       track_data.id = target_id;
+      /// enable moving average points
       double attack_points[3];
       if (getAttackPosition(selected_tracker, attack_points))
       {
@@ -179,7 +180,7 @@ void RmTrack::run()
         track_data.target_pos.y = x[2];
         track_data.target_pos.z = x[4];
       }
-      /// diable average height
+      /// disable average height
       // average height method
       //      selected_tracker->getTargetState(x);
       //      track_data.target_pos.x = x[0];
@@ -187,13 +188,10 @@ void RmTrack::run()
       //      track_data.target_pos.z = x[4];
       //      if (height != 0)
       //        track_data.target_pos.z = height;
-      /// disabel moving average points
-      // moving average points method
-      //      track_data.target_pos.z = [4];
-      /// enable common method
-      track_data.target_pos.x = x[0];
-      track_data.target_pos.y = x[2];
-      track_data.target_pos.z = x[4];
+      /// disable common method
+      //      track_data.target_pos.x = x[0];
+      //      track_data.target_pos.y = x[2];
+      //      track_data.target_pos.z = x[4];
 
       track_data.target_vel.x = 0.;
       track_data.target_vel.y = 0.;

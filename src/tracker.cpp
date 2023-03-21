@@ -67,21 +67,35 @@ void Tracker::updateTracker(rm_track::TargetsStamp& targets_stamp)
   {
     target_cache_.push_back(TargetStamp{
         .stamp = targets_stamp.stamp, .target = *match_target_it, .last_target_pt = &target_cache_.back().target });
-    /// compute the distance between current target and last target
-    tracker_distance_.distance = tf2::Vector3(target_cache_.back().last_target_pt->current_target_position)
-                                     .distance(match_target_it->current_target_position);
+    /// compute the distance between current target and last target, NOW DISABLE
+    //    if (target_cache_.back().last_target_pt != nullptr)
+    //      tracker_distance_.distance = tf2::Vector3(target_cache_.back().last_target_pt->current_target_position)
+    //                                     .distance(match_target_it->current_target_position);
     double z[3];
     z[0] = match_target_it->transform.getOrigin().x();
     z[1] = match_target_it->transform.getOrigin().y();
     z[2] = match_target_it->transform.getOrigin().z();
     predictor_.update(z);
-    predictor_.getState(x);
+    double current_state[6];
+    predictor_.getState(current_state);
+    /// compute the distance of odom between current target and last target, NOW DISABLE
+    tracker_distance_.distance =
+        tf2::Vector3(x[0], x[2], x[4]).distance(tf2::Vector3(current_state[0], current_state[2], current_state[4]));
+    //    ROS_INFO("distance = %lf", tracker_distance_.distance);
     if ((state_ == APPEAR || state_ == NEW_ARMOR) &&
         (ros::Time::now() - target_cache_.front().stamp).toSec() < max_new_armor_time_)
       state_ = NEW_ARMOR;
     else
       state_ = EXIST;
     targets_stamp.targets.erase(match_target_it);
+  }
+  else
+  {
+    double current_estimate_state[6];
+    predictor_.getState(current_estimate_state);
+    tracker_distance_.distance =
+        tf2::Vector3(x[0], x[2], x[4])
+            .distance(tf2::Vector3(current_estimate_state[0], current_estimate_state[2], current_estimate_state[4]));
   }
   predictor_.getState(x);
   double target_vel[3]{ x[1], x[3], x[5] };
@@ -189,12 +203,14 @@ void Trackers::updateTrackersState()
     average_ = std::make_shared<std::vector<double>>(3, 0.);
     idx_ = 0;
     test_idx_ = 0;
-    this->average_filter_->clear();
+    if ((current_time - last_satisfied_time_).toSec() > 1.)  /// TEST: longer time to clear average_filter
+      this->average_filter_->clear();
   }
 }
 bool Trackers::attackModeDiscriminator()
 {
   current_average_distance_diff_ = 0.;
+  //  ROS_INFO("imprecise_exist_trackers_.size = %d", imprecise_exist_trackers_.size());
   for (auto& tracker : imprecise_exist_trackers_)
   {
     current_average_distance_diff_ +=
@@ -286,17 +302,17 @@ bool Trackers::computeAttackPosition()
   {
     double state[6];
     exist_tracker.getTargetState(state);
-    //    this->average_filter_->input(state);
-    (*average_)[0] -= (*points_buffer_)[idx_][0];
-    (*average_)[1] -= (*points_buffer_)[idx_][1];
-    (*average_)[2] -= (*points_buffer_)[idx_][2];
-    (*points_buffer_)[idx_] = std::vector<double>{ state[0], state[2], state[4] };
-    (*average_)[0] += (*points_buffer_)[idx_][0];
-    (*average_)[1] += (*points_buffer_)[idx_][1];
-    (*average_)[2] += (*points_buffer_)[idx_][2];
-    idx_++;
+    this->average_filter_->input(state);
+    //    (*average_)[0] -= (*points_buffer_)[idx_][0];
+    //    (*average_)[1] -= (*points_buffer_)[idx_][1];
+    //    (*average_)[2] -= (*points_buffer_)[idx_][2];
+    //    (*points_buffer_)[idx_] = std::vector<double>{ state[0], state[2], state[4] };
+    //    (*average_)[0] += (*points_buffer_)[idx_][0];
+    //    (*average_)[1] += (*points_buffer_)[idx_][1];
+    //    (*average_)[2] += (*points_buffer_)[idx_][2];
+    //    idx_++;
     test_idx_++;
-    idx_ %= num_data_;
+    //    idx_ %= num_data_;
     if (test_idx_ < num_data_)
       is_satisfied = false;
   }
@@ -305,12 +321,12 @@ bool Trackers::computeAttackPosition()
 
 void Trackers::getAttackPosition(double* attack_point)
 {
-  attack_point[0] = (*average_)[0] / points_num_;
-  attack_point[1] = (*average_)[1] / points_num_;
-  attack_point[2] = (*average_)[2] / points_num_;
-  //  attack_point[0] = this->average_filter_->x();
-  //  attack_point[1] = this->average_filter_->y();
-  //  attack_point[2] = this->average_filter_->z();
+  //  attack_point[0] = (*average_)[0] / points_num_;
+  //  attack_point[1] = (*average_)[1] / points_num_;
+  //  attack_point[2] = (*average_)[2] / points_num_;
+  attack_point[0] = this->average_filter_->x();
+  attack_point[1] = this->average_filter_->y();
+  attack_point[2] = this->average_filter_->z();
 }
 
 void Trackers::getCircleCenter(std::vector<double>& circle_center)
