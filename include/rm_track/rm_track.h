@@ -19,9 +19,9 @@ public:
 
 private:
   void updateTrackerState();
-  bool selectAttackMode(Tracker* tracker);
+  bool selectAttackMode(Tracker* selected_tracker);
   void getCircleCenter(Tracker* selected_tracker, std::vector<double>& circle_center);
-  bool getAttackPosition(Tracker* selected_tracker, double* attack_point);
+  void getAttackState(Tracker* selected_tracker, double* attack_state, double& accel);
   void getAverageHeight(Tracker* selected_tracker, double* x, double* height);
 
   std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
@@ -32,6 +32,7 @@ private:
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
   ros::Publisher track_pub_;
   ros::Publisher marker_targets_pub_;
+  int last_id_;
 
   mutable std::mutex mutex_;
 };

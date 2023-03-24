@@ -29,6 +29,7 @@ void HeightFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2
 {
   for (auto& trackers : id2trackers)
   {
+    trackers.second->imprecise_exist_trackers_ = trackers.second->getExistTracker();
     for (auto& tracker : trackers.second->trackers_)
     {
       if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)
@@ -64,6 +65,7 @@ void DistanceFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& i
 {
   for (auto& trackers : id2trackers)
   {
+    trackers.second->imprecise_exist_trackers_ = trackers.second->getExistTracker();
     for (auto& tracker : trackers.second->trackers_)
     {
       if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)

@@ -19,14 +19,12 @@ struct Target
   double confidence;
   double distance_to_image_center;
   std::vector<double> target2camera_rpy;
-  tf2::Vector3 current_target_position;
 };
 
 struct TargetStamp
 {
   ros::Time stamp;
   Target target;
-  const Target* last_target_pt;
 };
 
 struct TargetsStamp
@@ -84,11 +82,13 @@ public:
     LOST
   } state_;
 
-  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time, double max_new_armor_time,
-          int num_data, rm_track::TargetStamp& target_stamp, double* initial_velocity);
+  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data,
+          double max_new_armor_time, double max_new_armor_match_distance, rm_track::TargetStamp& target_stamp,
+          double* initial_velocity);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
   void updateMarker(visualization_msgs::MarkerArray& marker_array, int marker_id);
+  void matchNewArmor(std::vector<Tracker>& exist_trackers);
   void getTargetState(double* x)
   {
     predictor_.getState(x);
@@ -106,7 +106,7 @@ public:
   std::deque<TargetStamp> target_cache_;
   struct TrackerDistance
   {
-    double distance;
+    double angle;
   } tracker_distance_;
 
 private:
@@ -115,20 +115,23 @@ private:
   std::shared_ptr<Vector3WithFilter<double>> accel_;
   ros::Time last_predict_time_;
   TargetMatcher target_matcher_;
+  TargetMatcher new_armor_matcher_;
 
   visualization_msgs::Marker marker_pos_;
   visualization_msgs::Marker marker_vel_;
   double max_match_distance_ = 0.2;
   double max_lost_time_;
   double max_new_armor_time_;
+  double max_new_armor_match_distance_;
   double max_storage_time_;
 };
 
 class Trackers
 {
 public:
-  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data, double max_new_armor_time,
-           double max_judge_period, double max_follow_distance)
+  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data,
+           double max_new_armor_time, double max_new_armor_match_distance, double max_spinning_time,
+           double max_judge_period, int points_num)
     : id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
@@ -136,16 +139,17 @@ public:
     , max_new_armor_time_(max_new_armor_time)
     , state_(Trackers::PRECISE_AUTO_AIM)
     , last_satisfied_time_(ros::Time::now())
-    , max_follow_distance_(max_follow_distance)
     , max_judge_period_(max_judge_period)
+    , points_num_(points_num)
     , num_data_(num_data)
+    , max_new_armor_match_distance_(max_new_armor_match_distance)
+    , max_spinning_time_(max_spinning_time)
   {
-    points_buffer_ = std::make_shared<std::vector<std::vector<double>>>(std::vector<std::vector<double>>(
-        points_num_, std::vector<double>(3, 0.)));  // TODO: average deque length need to modify
-    average_ = std::make_shared<std::vector<double>>(3, 0.);
+    points_buffer_ = std::make_shared<std::vector<std::vector<double>>>(
+        std::vector<std::vector<double>>(points_num_, std::vector<double>(3, 0.)));
     average_filter_ = std::make_shared<Vector3WithFilter<double>>(num_data_);
     idx_ = 0;
-    test_idx_ = 0;
+    last_spinning_time_ = ros::Time::now();
   }
   enum STATE
   {
@@ -161,10 +165,10 @@ public:
   void addTracker(ros::Time stamp, Target& target);
   int getExistTrackerNumber();
   void updateTrackersState();
-  bool attackModeDiscriminator();
+  bool attackModeDiscriminator(Tracker* selected_tracker);
   void computeCircleCenter(Tracker* selected_tracker);
-  bool computeAttackPosition();
-  void getAttackPosition(double* attack_point);
+  bool computeAttackPosition(Tracker* selected_tracker);
+  void getAttackState(double* attack_state);
   void getCircleCenter(std::vector<double>& circle_center);
   std::vector<Tracker> getExistTracker();
   std::deque<double> height_;
@@ -178,24 +182,23 @@ private:
   double max_storage_time_;
   int num_data_;
   double max_new_armor_time_;
+  double max_spinning_time_;
+  double max_new_armor_match_distance_;
 
-  double last_target_yaw_ = 0.;
-  double last_target_yaw_diff_ = 0.;
   ros::Time last_satisfied_time_;
-  double max_follow_distance_;
   ros::Duration max_judge_period_;
-  double last_average_distance_diff_ = 0.;
-  double current_average_distance_diff_ = 0.;
+  double current_angle_ = 0.;
+  double last_angle_ = 0.;
   bool reconfirmation_ = true;
-  bool is_satisfied_;
+  bool is_satisfied_ = false;
+  bool spinning_ = false;
+  ros::Time last_spinning_time_;
+
   std::vector<std::vector<double>> points_of_2D_plant_;
   std::vector<double> current_circle_center_;
   std::shared_ptr<std::vector<std::vector<double>>> points_buffer_;
   int idx_;
-  int test_idx_;
-  int points_num_ = 70;  // TODO: average deque length need to modify
-  std::shared_ptr<std::vector<double>> average_;
+  int points_num_;
   std::shared_ptr<Vector3WithFilter<double>> average_filter_;
 };
-
 }  // namespace rm_track

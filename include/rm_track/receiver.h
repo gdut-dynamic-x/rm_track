@@ -30,10 +30,13 @@ public:
   {
     nh.param("max_storage_time", max_storage_time_, 5.0);
     nh.param("max_lost_time", max_lost_time_, 0.1);
-    nh.param("max_new_armor_time", max_new_armor_time_, 0.12);
+    nh.param("max_new_armor_time", max_new_armor_time_, 0.04);
     nh.param("max_judge_period", max_judge_period_, 0.1);
-    nh.param("max_follow_distance", max_follow_distance_, 0.1);  /// default parameter is waiting for amending
+    nh.param("points_num", points_num_, 100);
     nh.param("num_data", num_data_, 20);
+    nh.param("max_new_armor_match_distance", max_new_armor_match_distance_, 0.01);
+    nh.param("max_spinning_time", max_spinning_time_, 0.004);
+
     msg_sub_.subscribe(nh, topic, 10);
     tf_filter_.registerCallback(boost::bind(&ReceiverBase::msgCallback, this, _1));
   }
@@ -41,9 +44,10 @@ public:
 protected:
   std::shared_ptr<Trackers>& allocateTrackers(int id)
   {
-    id2trackers_.insert(std::make_pair(
-        id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_, max_storage_time_, num_data_,
-                                       max_new_armor_time_, max_judge_period_dynamic_, max_follow_distance_dynamic_)));
+    id2trackers_.insert(std::make_pair(id, std::make_shared<Trackers>(id, max_match_distance_, max_lost_time_,
+                                                                      max_storage_time_, num_data_, max_new_armor_time_,
+                                                                      max_new_armor_match_distance_, max_spinning_time_,
+                                                                      max_judge_period_dynamic_, points_num_dynamic_)));
     return id2trackers_[id];
   }
   void addTracker(ros::Time stamp, Target& target)
@@ -82,15 +86,16 @@ protected:
   double max_storage_time_, max_lost_time_;
   double max_match_distance_;
   double max_new_armor_time_;
+  double max_new_armor_match_distance_;
 
   double max_judge_period_;
-  double max_follow_distance_;
-  static double max_follow_distance_dynamic_;
+  int points_num_;
+  static int points_num_dynamic_;
   static double max_judge_period_dynamic_;
   static bool dynamic_reconfig_initialized_;
+  double max_spinning_time_;
   static dynamic_reconfigure::Server<rm_track::ImpreciseAutoAimConfig>* reconf_server_;
   int num_data_;
-
   std::mutex& mutex_;
 
 private:
@@ -113,8 +118,8 @@ private:
   tf2_ros::TransformListener tf_listener;
   void staticValueInit()
   {
-    max_follow_distance_dynamic_ = max_follow_distance_;
     max_judge_period_dynamic_ = max_judge_period_;
+    points_num_dynamic_ = points_num_;
     reconf_server_ =
         new dynamic_reconfigure::Server<rm_track::ImpreciseAutoAimConfig>(ros::NodeHandle("~/imprecise_auto_aim"));
     dynamic_reconfigure::Server<rm_track::ImpreciseAutoAimConfig>::CallbackType cb;
@@ -125,12 +130,12 @@ private:
   {
     if (!dynamic_reconfig_initialized_)
     {
-      conf.max_follow_distance = max_follow_distance_dynamic_;
       conf.max_judge_period = max_judge_period_dynamic_;
+      conf.points_num = points_num_dynamic_;
       dynamic_reconfig_initialized_ = true;
     }
-    max_follow_distance_dynamic_ = conf.max_follow_distance;
     max_judge_period_dynamic_ = conf.max_judge_period;
+    points_num_dynamic_ = conf.points_num;
   }
 
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
@@ -145,16 +150,12 @@ private:
       pose_stamped.header.stamp = msg->header.stamp;
       pose_stamped.pose = detection.pose;
 
-      geometry_msgs::PoseStamped pose_stamped2base_link;
-
       tf2::Transform target2camera_tran;
       std::vector<double> target2camera_rpy;
       tf2::fromMsg(detection.pose, target2camera_tran);
       target2camera_rpy = getRPY(target2camera_tran);
-
       try
       {
-        tf_buffer_->transform(pose_stamped, pose_stamped2base_link, "base_link");
         tf_buffer_->transform(pose_stamped, pose_stamped, "odom");
       }
       catch (tf2::TransformException& ex)
@@ -162,15 +163,14 @@ private:
         ROS_WARN("Failure %s\n", ex.what());
       }
       tf2::Transform transform;
-      tf2::Transform transform2base_link;
       tf2::fromMsg(pose_stamped.pose, transform);
-      tf2::fromMsg(pose_stamped2base_link.pose, transform2base_link);
-      targets_stamp.targets.push_back(Target{ .id = detection.id,
-                                              .transform = transform,
-                                              .confidence = detection.confidence,
-                                              .distance_to_image_center = detection.distance_to_image_center,
-                                              .target2camera_rpy = target2camera_rpy,
-                                              .current_target_position = transform2base_link.getOrigin() });
+      targets_stamp.targets.push_back(Target{
+          .id = detection.id,
+          .transform = transform,
+          .confidence = detection.confidence,
+          .distance_to_image_center = detection.distance_to_image_center,
+          .target2camera_rpy = target2camera_rpy,
+      });
     }
     updateTracker(targets_stamp);
   }
@@ -210,9 +210,9 @@ private:
 template <class MsgType>
 bool ReceiverBase<MsgType>::dynamic_reconfig_initialized_ = false;
 template <class MsgType>
-double ReceiverBase<MsgType>::max_follow_distance_dynamic_ = 0.;
-template <class MsgType>
 double ReceiverBase<MsgType>::max_judge_period_dynamic_ = 0.1;
+template <class MsgType>
+int ReceiverBase<MsgType>::points_num_dynamic_ = 100;
 template <class MsgType>
 dynamic_reconfigure::Server<rm_track::ImpreciseAutoAimConfig>* ReceiverBase<MsgType>::reconf_server_;
 }  // namespace rm_track
