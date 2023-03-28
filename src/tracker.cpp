@@ -206,7 +206,7 @@ void Trackers::updateTrackersState()
     spinning_ = false;
     points_buffer_ = std::make_shared<std::vector<std::vector<double>>>(
         std::vector<std::vector<double>>(points_num_, std::vector<double>(3, 0.)));
-    if ((current_time - last_satisfied_time_).toSec() > 1.)  /// todo: TEST: longer time to clear average_filter
+    if ((current_time - last_satisfied_time_).toSec() > max_filter_deque_storage_time_)
     {
       this->average_filter_->clear();
       idx_ = 0;
@@ -226,12 +226,12 @@ bool Trackers::attackModeDiscriminator(Tracker* selected_tracker)
     if (imprecise_exist_trackers_.size() != 1)
     {
       spinning_ = (ros::Time::now() - last_spinning_time_).toSec() < max_spinning_time_;
-      ROS_INFO("%lf", (ros::Time::now() - last_spinning_time_).toSec());
       last_spinning_time_ = ros::Time::now();
     }
   }
   else
     spinning_ = false;
+
   current_angle_ = selected_tracker->tracker_distance_.angle;
   if (spinning_)
   {
@@ -265,60 +265,6 @@ bool Trackers::attackModeDiscriminator(Tracker* selected_tracker)
   return is_satisfied_;
 }
 
-void Trackers::computeCircleCenter(Tracker* selected_tracker)
-{
-  if (imprecise_exist_trackers_.empty())
-  {
-    double x_not_predict[6];
-    selected_tracker->getTargetState(x_not_predict);
-    current_circle_center_ = { x_not_predict[0], x_not_predict[2] };
-    return;
-  }
-  int rand_index = 0;
-  if (imprecise_exist_trackers_.size() - 1 != 0)
-  {
-    rand_index = rand() % (imprecise_exist_trackers_.size() - 1);
-  }
-  Tracker& tracker = imprecise_exist_trackers_[rand_index];
-  double x[6];
-  tracker.getTargetState(x);
-  if (points_of_2D_plant_.size() < 3)
-  {
-    double x_not_predict[6];
-    selected_tracker->getTargetState(x_not_predict);
-    points_of_2D_plant_.push_back(std::vector<double>{ x_not_predict[0], x_not_predict[2] });
-    current_circle_center_ = { x_not_predict[0], x_not_predict[2] };
-    return;
-  }
-  /// update points
-  points_of_2D_plant_.erase(points_of_2D_plant_.begin());
-  points_of_2D_plant_.push_back(std::vector<double>{ x[0], x[2] });
-  /// compute circle center
-  double a = points_of_2D_plant_[0][0] - points_of_2D_plant_[1][0];  // x1 - x2
-  double b = points_of_2D_plant_[0][1] - points_of_2D_plant_[1][1];  // y1 - y2
-  double c = points_of_2D_plant_[0][0] - points_of_2D_plant_[2][0];  // x1 - x3
-  double d = points_of_2D_plant_[0][1] - points_of_2D_plant_[2][1];  // y1 - y3
-  double det = b * c - a * d;
-  if (abs(det) < 1e-5)  // If three points are at the same line, then return.
-  {
-    double x_not_predict[6];
-    selected_tracker->getTargetState(x_not_predict);
-    current_circle_center_ = { x_not_predict[0], x_not_predict[2] };
-    return;
-  }
-  double e = ((pow(points_of_2D_plant_[0][0], 2) - pow(points_of_2D_plant_[1][0], 2)) -
-              (pow(points_of_2D_plant_[0][1], 2) - pow(points_of_2D_plant_[1][1], 2))) /
-             2.;  // ((x1^2-x2^2)-(y1^2-y2^2)) / 2
-  double f = ((pow(points_of_2D_plant_[0][0], 2) - pow(points_of_2D_plant_[2][0], 2)) -
-              (pow(points_of_2D_plant_[0][1], 2) - pow(points_of_2D_plant_[2][1], 2))) /
-             2.;  // ((x1^2-x3^2)-(y1^2-y3^2)) / 2
-  double circle_center_x = -(d * e - b * f) / det;
-  double circle_center_y = -(a * f - c * e) / det;
-  current_circle_center_ = { circle_center_x, circle_center_y };
-  ROS_ERROR("circle_center = (%lf, %lf) ", circle_center_x, circle_center_y);
-  ROS_INFO("r = %lf", sqrt(pow(circle_center_x, 2) + pow(circle_center_y, 2)));
-}
-
 bool Trackers::computeAttackPosition(Tracker* selected_tracker)
 {
   bool is_satisfied = true;
@@ -340,11 +286,6 @@ void Trackers::getAttackState(double* attack_state)
   attack_state[1] = 0.;
   attack_state[3] = 0.;
   attack_state[5] = 0.;
-}
-
-void Trackers::getCircleCenter(std::vector<double>& circle_center)
-{
-  circle_center = current_circle_center_;
 }
 
 int Trackers::getExistTrackerNumber()

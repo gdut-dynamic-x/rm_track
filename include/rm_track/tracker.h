@@ -8,7 +8,6 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <rm_common/filters/filters.h>
 #include "ekf/linear_kf.h"
-#include <rm_common/filters/filters.h>
 
 namespace rm_track
 {
@@ -18,7 +17,6 @@ struct Target
   tf2::Transform transform;
   double confidence;
   double distance_to_image_center;
-  std::vector<double> target2camera_rpy;
 };
 
 struct TargetStamp
@@ -131,20 +129,21 @@ class Trackers
 public:
   Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data,
            double max_new_armor_time, double max_new_armor_match_distance, double max_spinning_time,
-           double max_judge_period, int points_num)
+           double max_judge_period, double max_filter_deque_storage_time, int points_num)
     : id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
     , max_storage_time_(max_storage_time)
-    , max_new_armor_time_(max_new_armor_time)
-    , state_(Trackers::PRECISE_AUTO_AIM)
-    , last_satisfied_time_(ros::Time::now())
-    , max_judge_period_(max_judge_period)
-    , points_num_(points_num)
     , num_data_(num_data)
+    , max_new_armor_time_(max_new_armor_time)
     , max_new_armor_match_distance_(max_new_armor_match_distance)
     , max_spinning_time_(max_spinning_time)
+    , max_judge_period_(max_judge_period)
+    , max_filter_deque_storage_time_(max_filter_deque_storage_time)
+    , points_num_(points_num)
   {
+    state_ = Trackers::PRECISE_AUTO_AIM;
+    last_satisfied_time_ = ros::Time::now();
     points_buffer_ = std::make_shared<std::vector<std::vector<double>>>(
         std::vector<std::vector<double>>(points_num_, std::vector<double>(3, 0.)));
     average_filter_ = std::make_shared<Vector3WithFilter<double>>(num_data_);
@@ -166,12 +165,9 @@ public:
   int getExistTrackerNumber();
   void updateTrackersState();
   bool attackModeDiscriminator(Tracker* selected_tracker);
-  void computeCircleCenter(Tracker* selected_tracker);
   bool computeAttackPosition(Tracker* selected_tracker);
   void getAttackState(double* attack_state);
-  void getCircleCenter(std::vector<double>& circle_center);
   std::vector<Tracker> getExistTracker();
-  std::deque<double> height_;
   std::vector<Tracker> trackers_;
   std::vector<Tracker> imprecise_exist_trackers_;
 
@@ -194,11 +190,10 @@ private:
   bool spinning_ = false;
   ros::Time last_spinning_time_;
 
-  std::vector<std::vector<double>> points_of_2D_plant_;
-  std::vector<double> current_circle_center_;
   std::shared_ptr<std::vector<std::vector<double>>> points_buffer_;
   int idx_;
   int points_num_;
   std::shared_ptr<Vector3WithFilter<double>> average_filter_;
+  double max_filter_deque_storage_time_;
 };
 }  // namespace rm_track

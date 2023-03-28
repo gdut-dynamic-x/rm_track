@@ -12,7 +12,6 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   tf_buffer_ = new tf2_ros::Buffer(ros::Duration(10));
   double max_match_distance;
   nh.param("max_match_distance", max_match_distance, 0.2);
-  double max_new_armor_distance;
   XmlRpc::XmlRpcValue filters;
   if (nh.getParam("filters", filters))
     for (int i = 0; i < filters.size(); ++i)
@@ -36,7 +35,7 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
     {
       if (selectors[i] == "new_armor")
       {
-        logic_selectors_.push_back(new NewArmorSelector(max_new_armor_distance));
+        logic_selectors_.push_back(new NewArmorSelector());
         break;
       }
     }
@@ -64,10 +63,10 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   ros::NodeHandle linear_kf_nh = ros::NodeHandle(nh, "linear_kf");
   predictor.initStaticConfig(linear_kf_nh);
 
-  apriltag_receiver_ =
-      std::make_shared<AprilTagReceiver>(nh, id2trackers_, mutex_, max_match_distance, tf_buffer_, "/tag_detections");
-  rm_detection_receiver_ =
-      std::make_shared<RmDetectionReceiver>(nh, id2trackers_, mutex_, max_match_distance, tf_buffer_, "/detection");
+  apriltag_receiver_ = std::make_shared<AprilTagReceiver>(nh, id2trackers_, mutex_, max_match_distance,
+                                                          "tag_track_mode_reconf", tf_buffer_, "/tag_detections");
+  rm_detection_receiver_ = std::make_shared<RmDetectionReceiver>(nh, id2trackers_, mutex_, max_match_distance,
+                                                                 "track_mode_reconf", tf_buffer_, "/detection");
   track_pub_ = nh.advertise<rm_msgs::TrackData>("/track", 10);
   marker_targets_pub_ = nh.advertise<visualization_msgs::MarkerArray>("targets", 10);
 }
@@ -99,6 +98,7 @@ void RmTrack::updateTrackerState()
     }
     for (auto new_tracker : new_trackers)
       new_tracker->matchNewArmor(exist_trackers);
+    trackers.second->imprecise_exist_trackers_ = trackers.second->getExistTracker();
   }
   marker_targets_pub_.publish(marker_array);
 }
@@ -115,13 +115,6 @@ bool RmTrack::selectAttackMode(Tracker* selected_tracker)
   return trackers->attackModeDiscriminator(selected_tracker);
 }
 
-void RmTrack::getCircleCenter(Tracker* selected_tracker, std::vector<double>& circle_center)
-{
-  std::shared_ptr<Trackers> trackers = id2trackers_.find(selected_tracker->target_id_)->second;
-  trackers->computeCircleCenter(selected_tracker);
-  trackers->getCircleCenter(circle_center);
-}
-
 void RmTrack::getAttackState(Tracker* selected_tracker, double* attack_state, double& accel)
 {
   std::shared_ptr<Trackers> trackers = id2trackers_.find(selected_tracker->target_id_)->second;
@@ -129,7 +122,6 @@ void RmTrack::getAttackState(Tracker* selected_tracker, double* attack_state, do
   {
     trackers->getAttackState(attack_state);
     accel = 0.;
-    ROS_ERROR("SPINGING");
   }
   else
   {
@@ -145,20 +137,6 @@ void RmTrack::getAttackState(Tracker* selected_tracker, double* attack_state, do
     attack_state[5] = common_track_state[5];
     selected_tracker->predict(common_track_state, now);
     accel = selected_tracker->targetAccelLength();
-  }
-}
-
-void RmTrack::getAverageHeight(Tracker* selected_tracker, double* x, double* height)
-{
-  std::shared_ptr<Trackers> trackers = id2trackers_.find(selected_tracker->target_id_)->second;
-  if (x[4] != 0)
-    trackers->height_.push_front(x[4]);
-  double height_num = static_cast<double>(trackers->height_.size());
-  if (height_num > 10)  // TODO: height_num parameter is waiting for measurement
-    trackers->height_.pop_back();
-  for (auto z : trackers->height_)
-  {
-    *height += z / height_num;
   }
 }
 
@@ -201,7 +179,6 @@ void RmTrack::run()
       track_pub_.publish(track_data);
       return;
     }
-    /// Disable the v*t
     selected_tracker->getTargetState(x);
     selected_tracker->predict(x, now);
     target_accel_length = selected_tracker->targetAccelLength();
