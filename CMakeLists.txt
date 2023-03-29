@@ -18,6 +18,7 @@ find_package(catkin REQUIRED
 
 generate_dynamic_reconfigure_options(
         cfg/Ekf.cfg
+        cfg/ImpreciseAutoAim.cfg
 )
 
 catkin_package(

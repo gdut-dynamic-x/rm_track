@@ -47,5 +47,4 @@ public:
   explicit ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value);
   void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };
-
 }  // namespace rm_track

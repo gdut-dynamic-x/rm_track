@@ -14,10 +14,14 @@ bool ClosestToImageCenterSelector::input(const std::unordered_map<int, std::shar
   {
     for (auto& tracker : trackers.second->trackers_)
     {
-      if (tracker.state_ == Tracker::EXIST &&
+      if ((tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR) &&
           tracker.target_cache_.back().target.distance_to_image_center < min_distance_from_light_center)
       {
         selected_tracker_ = &tracker;
+        double x[6];
+        selected_tracker_->getTargetState(x);
+        last_armor_ = Armor{ .id = tracker.target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
+        has_last_armor_ = true;
         min_distance_from_light_center = tracker.target_cache_.back().target.distance_to_image_center;
         has_target = true;
       }
@@ -33,7 +37,7 @@ bool RandomArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Tr
     for (auto& trackers : id2trackers)
     {
       for (auto& tracker : trackers.second->trackers_)
-        if (tracker.state_ == Tracker::EXIST)
+        if (tracker.state_ == Tracker::EXIST || tracker.state_ == Tracker::NEW_ARMOR)
         {
           selected_tracker_ = &tracker;
           double x[6];
@@ -92,6 +96,28 @@ bool SameIDArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Tr
         return true;
       }
     }
+    return false;
+  }
+}
+
+bool NewArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
+{
+  if (!has_last_armor_)
+    return false;
+  if (!id2trackers.count(last_armor_.id))
+    return false;
+  else
+  {
+    for (auto& tracker : id2trackers.at(last_armor_.id)->trackers_)
+      if (tracker.state_ == Tracker::NEW_ARMOR)
+      {
+        selected_tracker_ = &tracker;
+        double x[6];
+        selected_tracker_->getTargetState(x);
+        last_armor_ = Armor{ .id = selected_tracker_->target_id_, .position = tf2::Vector3(x[0], x[2], x[4]) };
+        has_last_armor_ = true;
+        return true;
+      }
     return false;
   }
 }

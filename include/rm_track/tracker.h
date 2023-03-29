@@ -74,16 +74,19 @@ public:
   enum STATE
   {
     APPEAR,
+    NEW_ARMOR,
     EXIST,
     NOT_SELECTABLE,
     LOST
   } state_;
 
-  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time,
-          rm_track::TargetStamp& target_stamp, double* initial_velocity, int num_data);
+  Tracker(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data,
+          double max_new_armor_time, double max_new_armor_match_distance, rm_track::TargetStamp& target_stamp,
+          double* initial_velocity);
   void updateTracker(TargetsStamp& targets_stamp);
   void updateTrackerState();
   void updateMarker(visualization_msgs::MarkerArray& marker_array, int marker_id);
+  void matchNewArmor(std::vector<Tracker>& exist_trackers);
   void getTargetState(double* x)
   {
     predictor_.getState(x);
@@ -99,33 +102,60 @@ public:
 
   int target_id_;
   std::deque<TargetStamp> target_cache_;
+  struct TrackerDistance
+  {
+    double angle;
+  } tracker_distance_;
 
 private:
   LinearKf predictor_;
-  ros::Time last_predict_time_;
   double last_target_vel_[3];
-  TargetMatcher target_matcher_;
-
   std::shared_ptr<Vector3WithFilter<double>> accel_;
+  ros::Time last_predict_time_;
+  TargetMatcher target_matcher_;
+  TargetMatcher new_armor_matcher_;
 
   visualization_msgs::Marker marker_pos_;
   visualization_msgs::Marker marker_vel_;
   double max_match_distance_ = 0.2;
   double max_lost_time_;
+  double max_new_armor_time_;
+  double max_new_armor_match_distance_;
   double max_storage_time_;
 };
 
 class Trackers
 {
 public:
-  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data)
+  Trackers(int id, double max_match_distance, double max_lost_time, double max_storage_time, int num_data,
+           double max_new_armor_time, double max_new_armor_match_distance, double max_spinning_time,
+           double max_judge_period, double max_filter_deque_storage_time, int points_num)
     : id_(id)
     , max_match_distance_(max_match_distance)
     , max_lost_time_(max_lost_time)
     , max_storage_time_(max_storage_time)
     , num_data_(num_data)
+    , max_new_armor_time_(max_new_armor_time)
+    , max_new_armor_match_distance_(max_new_armor_match_distance)
+    , max_spinning_time_(max_spinning_time)
+    , max_judge_period_(max_judge_period)
+    , max_filter_deque_storage_time_(max_filter_deque_storage_time)
+    , points_num_(points_num)
   {
+    state_ = Trackers::PRECISE_AUTO_AIM;
+    last_satisfied_time_ = ros::Time::now();
+    points_buffer_ = std::make_shared<std::vector<std::vector<double>>>(
+        std::vector<std::vector<double>>(points_num_, std::vector<double>(3, 0.)));
+    average_filter_ = std::make_shared<Vector3WithFilter<double>>(num_data_);
+    idx_ = 0;
+    last_spinning_time_ = ros::Time::now();
   }
+  enum STATE
+  {
+    PRECISE_AUTO_AIM,
+    IMPRECISE_AUTO_AIM,
+  } state_;
+
   void updateTracker(TargetsStamp& target_stamps)
   {
     for (auto& tracker : trackers_)
@@ -133,8 +163,13 @@ public:
   }
   void addTracker(ros::Time stamp, Target& target);
   int getExistTrackerNumber();
+  void updateTrackersState();
+  bool attackModeDiscriminator(Tracker* selected_tracker);
+  bool computeAttackPosition(Tracker* selected_tracker);
+  void getAttackState(double* attack_state);
   std::vector<Tracker> getExistTracker();
   std::vector<Tracker> trackers_;
+  std::vector<Tracker> imprecise_exist_trackers_;
 
 private:
   int id_;
@@ -142,6 +177,23 @@ private:
   double max_lost_time_;
   double max_storage_time_;
   int num_data_;
-};
+  double max_new_armor_time_;
+  double max_spinning_time_;
+  double max_new_armor_match_distance_;
 
+  ros::Time last_satisfied_time_;
+  ros::Duration max_judge_period_;
+  double current_angle_ = 0.;
+  double last_angle_ = 0.;
+  bool reconfirmation_ = true;
+  bool is_satisfied_ = false;
+  bool spinning_ = false;
+  ros::Time last_spinning_time_;
+
+  std::shared_ptr<std::vector<std::vector<double>>> points_buffer_;
+  int idx_;
+  int points_num_;
+  std::shared_ptr<Vector3WithFilter<double>> average_filter_;
+  double max_filter_deque_storage_time_;
+};
 }  // namespace rm_track

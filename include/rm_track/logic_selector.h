@@ -76,4 +76,14 @@ public:
   }
   bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };
+
+class NewArmorSelector : public LogicSelectorBase
+{
+public:
+  NewArmorSelector()
+  {
+    ROS_INFO("Add new_armor_selector");
+  }
+  bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
+};
 }  // namespace rm_track

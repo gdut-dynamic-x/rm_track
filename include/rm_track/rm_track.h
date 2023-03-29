@@ -19,6 +19,9 @@ public:
 
 private:
   void updateTrackerState();
+  bool selectAttackMode(Tracker* selected_tracker);
+  void getAttackState(Tracker* selected_tracker, double* attack_state, double& accel);
+
   std::unordered_map<int, std::shared_ptr<Trackers>> id2trackers_;
   std::vector<LogicFilterBase*> logic_filters_;
   std::vector<LogicSelectorBase*> logic_selectors_;
@@ -27,6 +30,7 @@ private:
   std::shared_ptr<RmDetectionReceiver> rm_detection_receiver_;
   ros::Publisher track_pub_;
   ros::Publisher marker_targets_pub_;
+  int last_id_;
 
   mutable std::mutex mutex_;
 };
