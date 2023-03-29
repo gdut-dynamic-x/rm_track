@@ -30,32 +30,17 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
 
   XmlRpc::XmlRpcValue selectors;
   if (nh.getParam("selectors", selectors))
-  {
     for (int i = 0; i < selectors.size(); ++i)
     {
       if (selectors[i] == "new_armor")
-      {
         logic_selectors_.push_back(new NewArmorSelector());
-        break;
-      }
-    }
-    for (int i = 0; i < selectors.size(); ++i)
-    {
-      if (selectors[i] == "last_armor")
-      {
+      else if (selectors[i] == "last_armor")
         logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
-        break;
-      }
-    }
-    for (int i = 0; i < selectors.size(); ++i)
-    {
-      if (selectors[i] == "closest_to_image_center")
-      {
+      else if (selectors[i] == "closest_to_image_center")
         logic_selectors_.push_back(new ClosestToImageCenterSelector());
-        break;
-      }
+      else
+        ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
-  }
   else
     ROS_ERROR("No selectors are defined (namespace %s)", nh.getNamespace().c_str());
 
