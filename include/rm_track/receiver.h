@@ -85,12 +85,18 @@ public:
     : ReceiverBase(nh, id2trackers, mutex, max_match_distance, tf_buffer, topic), tf_listener(*tf_buffer_)
   {
   }
+  ros::Time lastReceiveTime()
+  {
+    return last_receive_time_;
+  }
 
 private:
   tf2_ros::TransformListener tf_listener;
+  ros::Time last_receive_time_;
   void msgCallback(const rm_msgs::TargetDetectionArray::ConstPtr& msg) override
   {
     std::lock_guard<std::mutex> guard(mutex_);
+    last_receive_time_ = ros::Time::now();
     TargetsStamp targets_stamp;
     targets_stamp.stamp = msg->header.stamp;
     for (const auto& detection : msg->detections)

@@ -119,6 +119,7 @@ void RmTrack::run()
   track_data.target_vel.z = x[5];
   track_data.accel = target_accel_length;
 
-  track_pub_.publish(track_data);
+  if ((ros::Time::now() - rm_detection_receiver_->lastReceiveTime()).toSec() < 0.1)
+    track_pub_.publish(track_data);
 }
 }  // namespace rm_track
