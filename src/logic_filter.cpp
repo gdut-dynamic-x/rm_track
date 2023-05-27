@@ -94,4 +94,24 @@ void ConfidenceFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>&
 {
 }
 
+IdFilter::IdFilter(const XmlRpc::XmlRpcValue& rpc_value) : LogicFilterBase()
+{
+  if (rpc_value.hasMember("id"))
+    id_ = (int)rpc_value["id"];
+  else
+    ROS_ERROR("id_filter: id is not set.");
+}
+
+void IdFilter::input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
+{
+  for (auto& trackers : id2trackers)
+  {
+    for (auto& tracker : trackers.second->trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST && tracker.target_id_ == id_)
+        tracker.state_ = Tracker::NOT_SELECTABLE;
+    }
+  }
+}
+
 }  // namespace rm_track

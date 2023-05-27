@@ -14,6 +14,7 @@ class LogicFilterBase
 {
 public:
   explicit LogicFilterBase(XmlRpc::XmlRpcValue rpc_value);
+  LogicFilterBase(){};
   virtual void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers_){};
 
 protected:
@@ -46,6 +47,16 @@ class ConfidenceFilter : public LogicFilterBase
 public:
   explicit ConfidenceFilter(const XmlRpc::XmlRpcValue& rpc_value);
   void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
+};
+
+class IdFilter : public LogicFilterBase
+{
+public:
+  explicit IdFilter(const XmlRpc::XmlRpcValue& rpc_value);
+  void input(std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
+
+private:
+  int id_;
 };
 
 }  // namespace rm_track
