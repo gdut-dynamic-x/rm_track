@@ -22,6 +22,8 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
         logic_filters_.push_back(new DistanceFilter(filters[i], tf_buffer_));
       else if (filters[i]["type"] == "confidence_filter")
         logic_filters_.push_back(new ConfidenceFilter(filters[i]));
+      else if (filters[i]["type"] == "id_filter")
+        logic_filters_.push_back(new IdFilter(filters[i]));
       else
         ROS_ERROR("Filter '%s' does not exist", filters[i].toXml().c_str());
     }
