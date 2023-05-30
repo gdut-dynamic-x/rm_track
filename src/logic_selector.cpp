@@ -96,6 +96,27 @@ bool SameIDArmorSelector::input(const std::unordered_map<int, std::shared_ptr<Tr
   }
 }
 
+bool IdSelector::input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers)
+{
+  if (id2trackers.count(id_))
+  {
+    bool has_specific_exist_tracker = false;
+    for (auto& tracker : id2trackers.at(id_)->trackers_)
+    {
+      if (tracker.state_ == Tracker::EXIST)
+        has_specific_exist_tracker = true;
+    }
+    if (has_specific_exist_tracker)
+      for (auto& trackers : id2trackers)
+      {
+        if (trackers.first != id_)
+          for (auto& tracker : trackers.second->trackers_)
+            tracker.state_ = Tracker::NOT_SELECTABLE;
+      }
+  }
+  return false;
+}
+
 Tracker* LogicSelectorBase::selected_tracker_;
 Armor LogicSelectorBase::last_armor_;
 bool LogicSelectorBase::has_last_armor_ = false;
