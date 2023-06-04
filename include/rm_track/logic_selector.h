@@ -76,4 +76,23 @@ public:
   }
   bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
 };
+
+class IdSelector : public LogicSelectorBase
+{
+public:
+  IdSelector(const XmlRpc::XmlRpcValue& rpc_value)
+  {
+    if (rpc_value.hasMember("id"))
+    {
+      id_ = (int)rpc_value["id"];
+      ROS_INFO("Add id_selector");
+    }
+    else
+      ROS_ERROR("id_selector: id is not set.");
+  }
+  bool input(const std::unordered_map<int, std::shared_ptr<Trackers>>& id2trackers) override;
+
+private:
+  int id_;
+};
 }  // namespace rm_track

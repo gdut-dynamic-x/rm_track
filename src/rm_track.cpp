@@ -34,14 +34,16 @@ RmTrack::RmTrack(ros::NodeHandle& nh)
   if (nh.getParam("selectors", selectors))
     for (int i = 0; i < selectors.size(); ++i)
     {
-      if (selectors[i] == "last_armor")
+      if (selectors[i]["type"] == "last_armor")
         logic_selectors_.push_back(new LastArmorSelector(max_match_distance));
-      else if (selectors[i] == "same_id_armor")
+      else if (selectors[i]["type"] == "same_id_armor")
         logic_selectors_.push_back(new SameIDArmorSelector());
-      else if (selectors[i] == "random_armor")
+      else if (selectors[i]["type"] == "random_armor")
         logic_selectors_.push_back(new RandomArmorSelector());
-      else if (selectors[i] == "closest_to_image_center")
+      else if (selectors[i]["type"] == "closest_to_image_center")
         logic_selectors_.push_back(new ClosestToImageCenterSelector());
+      else if (selectors[i]["type"] == "id_selector")
+        logic_selectors_.push_back(new IdSelector(selectors[i]));
       else
         ROS_ERROR("Selector '%s' does not exist", selectors[i].toXml().c_str());
     }
